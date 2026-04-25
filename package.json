@@ -1,0 +1,65 @@
+{
+  "name": "@rayselfs/cf-rule-engine",
+  "version": "1.5.1",
+  "description": "Composable, tree-shakeable CloudFront Function rules",
+  "license": "MIT",
+  "sideEffects": false,
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./core": {
+      "types": "./dist/core/index.d.ts",
+      "import": "./dist/core/index.js",
+      "require": "./dist/core/index.cjs"
+    },
+    "./criteria/*": {
+      "types": "./dist/criteria/*.d.ts",
+      "import": "./dist/criteria/*.js",
+      "require": "./dist/criteria/*.cjs"
+    },
+    "./behaviors/*": {
+      "types": "./dist/behaviors/*.d.ts",
+      "import": "./dist/behaviors/*.js",
+      "require": "./dist/behaviors/*.cjs"
+    },
+    "./adapters/*": {
+      "types": "./dist/adapters/*.d.ts",
+      "import": "./dist/adapters/*.js",
+      "require": "./dist/adapters/*.cjs"
+    },
+    "./helpers": {
+      "types": "./dist/helpers/index.d.ts",
+      "import": "./dist/helpers/index.js",
+      "require": "./dist/helpers/index.cjs"
+    },
+    "./helpers/*": {
+      "types": "./dist/helpers/*.d.ts",
+      "import": "./dist/helpers/*.js",
+      "require": "./dist/helpers/*.cjs"
+    }
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.5"
+  }
+}
