@@ -1,5 +1,5 @@
 import { runRules } from '../core/rule.js'
-import type { Rule, ResponseBehaviorFn, HttpRequest, HttpResponse } from '../core/types.js'
+import type { Rule, ResponseBehaviorFn, ResponseRule, HttpRequest, HttpResponse } from '../core/types.js'
 
 function normalizeRequest(event: unknown): HttpRequest {
   const ev = event as Record<string, unknown>
@@ -47,7 +47,7 @@ export function defineViewerRequest(rules: Rule[]): (event: unknown) => unknown 
 }
 
 /** Creates a CloudFront Function viewer response handler that applies response behaviors and returns a normalized response. */
-export function defineViewerResponse(responseBehaviors: ResponseBehaviorFn[]): (event: unknown) => unknown {
+export function defineViewerResponse(responseBehaviors: Array<ResponseBehaviorFn | ResponseRule>): (event: unknown) => unknown {
   return (event) => {
     const ev = event as Record<string, unknown>
     const evRes = ev.response as Record<string, unknown> | undefined
@@ -58,8 +58,12 @@ export function defineViewerResponse(responseBehaviors: ResponseBehaviorFn[]): (
       headers: (evRes?.headers ?? {}) as Record<string, { value: string }>,
       body: evRes?.body as string | undefined,
     }
-    for (const behavior of responseBehaviors) {
-      response = behavior(req, response)
+    for (const entry of responseBehaviors) {
+      if (typeof entry === 'function') {
+        response = entry(req, response)
+      } else if (!entry.criteria || entry.criteria(req)) {
+        response = entry.behavior(req, response)
+      }
     }
     const normalized = denormalizeResponse(response) as Record<string, unknown>
     return { ...(evRes as object), ...normalized }

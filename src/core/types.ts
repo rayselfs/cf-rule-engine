@@ -31,6 +31,12 @@ export type BehaviorFn = (request: HttpRequest) => BehaviorResult
 /** A function that modifies an HTTP response. */
 export type ResponseBehaviorFn = (request: HttpRequest, response: HttpResponse) => HttpResponse
 
+/** A response rule: an optional criteria guard plus a ResponseBehaviorFn. */
+export interface ResponseRule {
+  criteria?: CriteriaFn
+  behavior: ResponseBehaviorFn
+}
+
 /** A rule combining optional criteria and a behavior function. */
 export interface Rule {
   criteria?: CriteriaFn

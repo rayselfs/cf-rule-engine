@@ -1,5 +1,5 @@
 import { runRules } from '../core/rule.js'
-import type { Rule, ResponseBehaviorFn, HttpRequest, HttpResponse } from '../core/types.js'
+import type { Rule, ResponseBehaviorFn, ResponseRule, HttpRequest, HttpResponse } from '../core/types.js'
 
 function normalizeHeaders(
   headers: Record<string, Array<{ key: string; value: string }>>,
@@ -73,7 +73,7 @@ export function defineViewerRequest(rules: Rule[]): (event: unknown) => unknown 
 }
 
 /** Creates a Lambda@Edge viewer response handler that applies response behaviors and returns a normalized CloudFront event response. */
-export function defineViewerResponse(responseBehaviors: ResponseBehaviorFn[]): (event: unknown) => unknown {
+export function defineViewerResponse(responseBehaviors: Array<ResponseBehaviorFn | ResponseRule>): (event: unknown) => unknown {
   return async (event) => {
     const ev = event as Record<string, unknown>
     const records = ev.Records as Array<{ cf: Record<string, unknown> }>
@@ -98,8 +98,12 @@ export function defineViewerResponse(responseBehaviors: ResponseBehaviorFn[]): (
       ),
       body: lambdaRes.body as string | undefined,
     }
-    for (const behavior of responseBehaviors) {
-      response = behavior(req, response)
+    for (const entry of responseBehaviors) {
+      if (typeof entry === 'function') {
+        response = entry(req, response)
+      } else if (!entry.criteria || entry.criteria(req)) {
+        response = entry.behavior(req, response)
+      }
     }
     return {
       ...lambdaRes,

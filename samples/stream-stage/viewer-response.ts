@@ -11,7 +11,6 @@ import { all, hostnameIs } from '@viverse/cf-engine'
 import { pathMatches } from '@viverse/cf-engine/criteria/path-matches'
 import { setCorsHeaders } from '@viverse/cf-engine/behaviors/set-cors-headers'
 import { defineViewerResponse } from '@viverse/cf-engine/adapters/cf-function'
-import { matchesWildcard } from '@viverse/cf-engine/shared/wildcard'
 
 // --- Configuration Values ---
 
@@ -33,7 +32,7 @@ export default defineViewerResponse([
   {
     criteria: all(
       hostnameIs('stream-stage.viverse.com'),
-      (req) => matchesWildcard(req.headers['origin']?.value ?? '', 'https://*.viverse.com'),
+      (req) => (req.headers['origin']?.value ?? '').includes('.viverse.com'),
     ),
     behavior: setCorsHeaders({
       allowOriginEcho: true,
