@@ -1,47 +1,31 @@
 # Samples
 
-This directory contains real-world examples of how to use `@viverse/cf-engine` to build CloudFront Functions.
+Real-world usage examples for `@viverse/cf-engine`.
 
-## stream-stage
+## CloudFront Functions
 
-The `stream-stage/` directory shows a complete viewer-request and viewer-response handler pair for the `stream-stage.viverse.com` CloudFront distribution.
+| File | Adapter | Description |
+|---|---|---|
+| `viewer-request.ts` | `cf-function` | Request routing — whitelist, redirects, rewrites, CORS preflight |
+| `viewer-response.ts` | `cf-function` | Response CORS headers — domain-scoped and public asset rules |
 
-### viewer-request.ts
+## Lambda@Edge (viewer-request)
 
-Demonstrates request-stage logic:
+Lambda@Edge is required when the behavior needs Node.js APIs unavailable in CF Functions.
 
-- **Rule 1**: Whitelist enforcement. Blocks non-whitelisted IPs unless they have a whitelisted user agent or are accessing bypass paths (static assets, APIs).
-- **Rule 2**: Metrics endpoint blocking.
-- **Rule 3**: Root path rewrite to `/console/landing`.
-- **Rule 4**: CORS preflight handling (OPTIONS).
-- **Rule 5**: CloudFront country header propagation.
+| File | Akamai Equivalent | Why Lambda@Edge |
+|---|---|---|
+| `lambda-verify-token.ts` | `verifyTokenAuthorization` | Needs `crypto` (HMAC-SHA256) |
+| `lambda-image-optimize.ts` | `imageManager` + `imOverride` | Can run on either; Lambda for complex header forwarding |
 
-Build:
+## Build
+
+**CF Function** (`--target=es2019`, `--format=iife`):
 ```bash
-esbuild viewer-request.ts --bundle --minify --target=es5 --platform=browser --format=iife --outfile=dist/viewer-request.js
+esbuild viewer-request.ts --bundle --minify --target=es2019 --format=iife --global-name=handler --outfile=dist/viewer-request.js
 ```
 
-### viewer-response.ts
-
-Demonstrates response-stage logic:
-
-- **Behavior 1**: Domain-scoped CORS for requests from `*.viverse.com` origins to `stream-stage.viverse.com`, echoing back the origin.
-- **Behavior 2**: Public asset CORS. Allows `*` origin for specific asset paths that are meant to be publicly accessible.
-
-Build:
+**Lambda@Edge** (`--platform=node`, `--format=cjs`):
 ```bash
-esbuild viewer-response.ts --bundle --minify --target=es5 --platform=browser --format=iife --outfile=dist/viewer-response.js
+esbuild lambda-verify-token.ts --bundle --minify --platform=node --target=node20 --format=cjs --outfile=dist/lambda-verify-token.js
 ```
-
-## Usage in viverse-terraform
-
-These samples assume the `@viverse/cf-engine` package is published to the Verdaccio registry. Once installed as a dependency in `viverse-terraform`, they can be imported and built using esbuild before deployment:
-
-```typescript
-import config from '../samples/stream-stage/viewer-request.ts'
-// Then pass to CloudFront Function construct
-```
-
-## Note
-
-Samples are not included in the package build. They're for reference and documentation only. Each example can be built independently to generate a minified CloudFront Function handler.
