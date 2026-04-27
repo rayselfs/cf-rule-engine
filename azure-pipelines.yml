@@ -3,11 +3,6 @@ trigger:
     include:
       - main
 
-pr:
-  branches:
-    include:
-      - '*'
-
 pool:
   name: DevOps
 
@@ -38,10 +33,31 @@ stages:
           - script: npm run build
             displayName: Build package
 
+  - stage: Publish
+    displayName: Publish to Verdaccio
+    dependsOn: CI
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    jobs:
+      - job: Publish
+        displayName: npm publish
+        steps:
+          - task: NodeTool@0
+            inputs:
+              versionSpec: '$(NODE_VERSION)'
+            displayName: Install Node.js
+
+          - script: npm ci
+            displayName: Install dependencies
+
+          - script: npm run build
+            displayName: Build package
+
           - script: |
-              echo "//vr-ops-internal-npm-registry.vrprod.viveport.com/:_authToken=$(NPM_TOKEN)" >> .npmrc
-              npm publish --registry https://vr-ops-internal-npm-registry.vrprod.viveport.com
+              NPM_AUTH=$(echo -n "$(NPM_USER):$(NPM_PASS)" | base64)
+              echo "//vr-ops-internal-npm-registry.vrprod.viveport.com/:_auth=${NPM_AUTH}" >> .npmrc
+              echo "//vr-ops-internal-npm-registry.vrprod.viveport.com/:always-auth=true" >> .npmrc
+              npm publish
             displayName: Publish to Verdaccio
-            condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
             env:
-              NPM_TOKEN: $(NPM_TOKEN)
+              NPM_USER: $(NPM_USER)
+              NPM_PASS: $(NPM_PASS)

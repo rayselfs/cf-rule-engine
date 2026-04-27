@@ -152,7 +152,7 @@ When splitting is needed:
 3. **CF Distribution behavior** — add a path-pattern behavior that routes to the Lambda
 4. **Remaining rules** — stay in CF Function (security headers, CORS, simple rewrites)
 
-**Example split for www.viverse.com (36 redirects):**
+**Example split (property with many redirects):**
 ```
 CF Function (viewer-request):
   → setSecurityHeaders
@@ -160,25 +160,12 @@ CF Function (viewer-request):
   → block specific user agents (constructResponse)
   → simple path rewrites
 
-Lambda@Edge (viewer-request) — bound to behavior path: /birdie-wing/*
-  → birdie-wing locale redirects
+Lambda@Edge (viewer-request) — bound to behavior path: /section-a/*
+  → locale redirects
 
-Lambda@Edge (viewer-request) — bound to behavior path: /profile/* (or default)
-  → profile blacklist redirects
-
-Lambda@Edge (viewer-request) — bound to behavior: MKT paths
-  → MKT redirect table (18 rules)
+Lambda@Edge (viewer-request) — bound to behavior path: /section-b/*
+  → redirect table
 ```
-
-**Properties requiring split:**
-
-| Property | Redirects | Recommendation |
-|---|---|---|
-| `www.viveport.com` | 34 | 🔴 Split required |
-| `www.viverse.com` | 36 | 🔴 Split required |
-| `avatar.viverse.com` | 1 | 🟢 Single CF Function |
-| `market.viverse.com` | 4 | 🟢 Single CF Function |
-| `stream.viverse.com` | 1 | 🟢 Single CF Function |
 
 ---
 
