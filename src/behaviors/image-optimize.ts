@@ -15,8 +15,8 @@ export interface ImageOptimizeOptions {
 
 function selectBreakpoint(width: number, breakpoints: number[]): number {
   const sorted = [...breakpoints].sort((a, b) => a - b)
-  for (const bp of sorted) {
-    if (bp >= width) return bp
+  for (let i = 0; i < sorted.length; i++) {
+    if (sorted[i] >= width) return sorted[i]
   }
   return sorted[sorted.length - 1]
 }
@@ -38,9 +38,9 @@ function selectFormat(
   formats: ('avif' | 'webp' | 'jpeg')[],
 ): string {
   if (acceptHeader) {
-    for (const fmt of formats) {
-      if (fmt === 'avif' && acceptHeader.includes('image/avif')) return 'avif'
-      if (fmt === 'webp' && acceptHeader.includes('image/webp')) return 'webp'
+    for (let i = 0; i < formats.length; i++) {
+      if (formats[i] === 'avif' && acceptHeader.includes('image/avif')) return 'avif'
+      if (formats[i] === 'webp' && acceptHeader.includes('image/webp')) return 'webp'
     }
   }
   return formats[formats.length - 1] ?? 'jpeg'

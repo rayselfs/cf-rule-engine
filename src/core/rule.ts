@@ -28,7 +28,8 @@ export function not(fn: CriteriaFn): CriteriaFn {
 
 /** Executes rules against a request in order, stopping at first response or completing all. */
 export function runRules(rules: Rule[], request: HttpRequest): BehaviorResult {
-  for (const r of rules) {
+  for (let i = 0; i < rules.length; i++) {
+    const r = rules[i]
     if (!r.criteria || r.criteria(request)) {
       const result = r.behavior(request)
       if (result.action === 'respond') return result

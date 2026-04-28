@@ -5,7 +5,9 @@ function normalizeHeaders(
   headers: Record<string, Array<{ key: string; value: string }>>,
 ): Record<string, { value: string }> {
   const result: Record<string, { value: string }> = {}
-  for (const [key, arr] of Object.entries(headers ?? {})) {
+  const entries = Object.entries(headers ?? {})
+  for (let i = 0; i < entries.length; i++) {
+    const [key, arr] = entries[i]
     if (arr.length > 0) result[key.toLowerCase()] = { value: arr[0].value }
   }
   return result
@@ -15,7 +17,9 @@ function denormalizeHeaders(
   headers: Record<string, { value: string }>,
 ): Record<string, Array<{ key: string; value: string }>> {
   const result: Record<string, Array<{ key: string; value: string }>> = {}
-  for (const [key, { value }] of Object.entries(headers)) {
+  const entries = Object.entries(headers)
+  for (let i = 0; i < entries.length; i++) {
+    const [key, { value }] = entries[i]
     result[key] = [{ key, value }]
   }
   return result
@@ -98,7 +102,8 @@ export function defineViewerResponse(responseBehaviors: Array<ResponseBehaviorFn
       ),
       body: lambdaRes.body as string | undefined,
     }
-    for (const entry of responseBehaviors) {
+    for (let i = 0; i < responseBehaviors.length; i++) {
+      const entry = responseBehaviors[i]
       if (typeof entry === 'function') {
         response = entry(req, response)
       } else if (!entry.criteria || entry.criteria(req)) {

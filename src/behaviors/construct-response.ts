@@ -30,7 +30,9 @@ export function constructResponse(options: ConstructResponseOptions): BehaviorFn
       headers['content-type'] = { value: options.contentType }
     }
     if (options.headers) {
-      for (const [k, v] of Object.entries(options.headers)) {
+      const headerEntries = Object.entries(options.headers)
+      for (let i = 0; i < headerEntries.length; i++) {
+        const [k, v] = headerEntries[i]
         headers[k.toLowerCase()] = { value: v }
       }
     }

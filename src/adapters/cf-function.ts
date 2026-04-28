@@ -58,7 +58,8 @@ export function defineViewerResponse(responseBehaviors: Array<ResponseBehaviorFn
       headers: (evRes?.headers ?? {}) as Record<string, { value: string }>,
       body: evRes?.body as string | undefined,
     }
-    for (const entry of responseBehaviors) {
+    for (let i = 0; i < responseBehaviors.length; i++) {
+      const entry = responseBehaviors[i]
       if (typeof entry === 'function') {
         response = entry(req, response)
       } else if (!entry.criteria || entry.criteria(req)) {

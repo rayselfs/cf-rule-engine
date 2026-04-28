@@ -45,6 +45,8 @@ export default defineConfig({
   dts: true,
   clean: true,
   splitting: true,
+  // CF JS 2.0 runtime does NOT support: for...of, Symbol.iterator, generators, async/await (viewer-request).
+  // esbuild cannot downlevel for...of — avoid it in source code. Use index-based loops instead.
   target: 'es2020',
   outDir: 'dist',
 })

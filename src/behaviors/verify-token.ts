@@ -15,12 +15,13 @@ export interface VerifyTokenOptions {
 
 function parseToken(raw: string): Record<string, string> | null {
   const fields: Record<string, string> = {}
-  for (const part of raw.split('~')) {
-    const eq = part.indexOf('=')
+  const parts = raw.split('~')
+  for (let i = 0; i < parts.length; i++) {
+    const eq = parts[i].indexOf('=')
     if (eq === -1) return null
-    const k = part.slice(0, eq)
+    const k = parts[i].slice(0, eq)
     if (!k) return null
-    fields[k] = part.slice(eq + 1)
+    fields[k] = parts[i].slice(eq + 1)
   }
   return fields
 }
