@@ -1,15 +1,15 @@
-const regexCache = new Map<string, RegExp>()
+const regexCache: Record<string, RegExp> = Object.create(null)
 
 /** Convert a wildcard pattern to a RegExp. `*` matches any chars, `?` matches one char. Case-insensitive. */
 export function wildcardToRegex(pattern: string): RegExp {
-  if (!regexCache.has(pattern)) {
+  if (!(pattern in regexCache)) {
     const escaped = pattern
       .replace(/[.+^${}()|[\]\\]/g, '\\$&')
       .replace(/\*/g, '.*')
       .replace(/\?/g, '.')
-    regexCache.set(pattern, new RegExp(`^${escaped}$`, 'i'))
+    regexCache[pattern] = new RegExp(`^${escaped}$`, 'i')
   }
-  return regexCache.get(pattern)!
+  return regexCache[pattern]
 }
 
 /** Returns true if `str` matches the given wildcard pattern */
