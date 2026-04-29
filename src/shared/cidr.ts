@@ -5,7 +5,9 @@ export function ipToInt(ip: string): number {
 
 /** Returns true if `ip` falls within the `cidr` range (e.g. "10.0.0.0/8") */
 export function inCidr(ip: string, cidr: string): boolean {
-  const [range, bits = '32'] = cidr.split('/')
+  const parts = cidr.split('/')
+  const range = parts[0]
+  const bits = parts[1] || '32'
   const mask = bits === '0' ? 0 : (~0 << (32 - parseInt(bits, 10))) >>> 0
   return (ipToInt(ip) & mask) === (ipToInt(range) & mask)
 }

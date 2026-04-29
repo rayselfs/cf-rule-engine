@@ -29,7 +29,9 @@ function parseQuerystring(qs: string): Record<string, { value: string }> {
   if (!qs) return {}
   return Object.fromEntries(
     qs.split('&').map(p => {
-      const [k, v = ''] = p.split('=')
+      const parts = p.split('=')
+      const k = parts[0]
+      const v = parts[1] || ''
       return [k, { value: v }]
     }),
   )
