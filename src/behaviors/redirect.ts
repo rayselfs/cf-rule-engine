@@ -20,9 +20,13 @@ export function redirect(
   return (request: HttpRequest) => {
     let finalLocation = location
     if (options?.preserveQuerystring) {
-      const qs = Object.entries(request.querystring)
-        .map(([k, v]) => `${k}=${v.value}`)
-        .join('&')
+      const qsEntries = Object.entries(request.querystring)
+      const qsParts: string[] = []
+      for (let i = 0; i < qsEntries.length; i++) {
+        const entry = qsEntries[i]
+        qsParts.push(entry[0] + '=' + entry[1].value)
+      }
+      const qs = qsParts.join('&')
       if (qs) {
         finalLocation = `${location}?${qs}`
       }

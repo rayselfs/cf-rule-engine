@@ -7,7 +7,9 @@ function normalizeHeaders(
   const result: Record<string, { value: string }> = {}
   const entries = Object.entries(headers ?? {})
   for (let i = 0; i < entries.length; i++) {
-    const [key, arr] = entries[i]
+    const entry = entries[i]
+    const key = entry[0]
+    const arr = entry[1]
     if (arr.length > 0) result[key.toLowerCase()] = { value: arr[0].value }
   }
   return result
@@ -19,7 +21,9 @@ function denormalizeHeaders(
   const result: Record<string, Array<{ key: string; value: string }>> = {}
   const entries = Object.entries(headers)
   for (let i = 0; i < entries.length; i++) {
-    const [key, { value }] = entries[i]
+    const entry = entries[i]
+    const key = entry[0]
+    const value = entry[1].value
     result[key] = [{ key, value }]
   }
   return result
@@ -38,9 +42,12 @@ function parseQuerystring(qs: string): Record<string, { value: string }> {
 }
 
 function serializeQuerystring(qs: Record<string, { value: string }>): string {
-  return Object.entries(qs)
-    .map(([k, { value }]) => `${k}=${value}`)
-    .join('&')
+  const qsEntries = Object.entries(qs)
+  const parts: string[] = []
+  for (let i = 0; i < qsEntries.length; i++) {
+    parts.push(qsEntries[i][0] + '=' + qsEntries[i][1].value)
+  }
+  return parts.join('&')
 }
 
 /** Creates a Lambda@Edge viewer request handler that executes rules and returns a normalized CloudFront event response. */

@@ -32,8 +32,8 @@ export function constructResponse(options: ConstructResponseOptions): BehaviorFn
     if (options.headers) {
       const headerEntries = Object.entries(options.headers)
       for (let i = 0; i < headerEntries.length; i++) {
-        const [k, v] = headerEntries[i]
-        headers[k.toLowerCase()] = { value: v }
+        const entry = headerEntries[i]
+        headers[entry[0].toLowerCase()] = { value: entry[1] }
       }
     }
     return {

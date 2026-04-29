@@ -5,9 +5,12 @@ export interface CspOptions {
 }
 
 export function setCsp(options: CspOptions): ResponseBehaviorFn {
-  const cspValue = Object.entries(options.directives)
-    .map(([directive, value]) => `${directive} ${value}`)
-    .join('; ')
+  const dirEntries = Object.entries(options.directives)
+  const dirParts: string[] = []
+  for (let i = 0; i < dirEntries.length; i++) {
+    dirParts.push(dirEntries[i][0] + ' ' + dirEntries[i][1])
+  }
+  const cspValue = dirParts.join('; ')
 
   return (_request: HttpRequest, response: HttpResponse): HttpResponse => {
     return Object.assign({}, response, {
