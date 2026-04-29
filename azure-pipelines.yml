@@ -30,9 +30,6 @@ stages:
           - script: npm test
             displayName: Run tests
 
-          - script: npm run build
-            displayName: Build package
-
   - stage: Publish
     displayName: Publish to Verdaccio
     dependsOn: CI
