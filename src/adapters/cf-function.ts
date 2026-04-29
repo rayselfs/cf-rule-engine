@@ -17,13 +17,13 @@ function normalizeRequest(event: unknown): HttpRequest {
   }
 }
 
-function denormalizeRequest(req: HttpRequest): unknown {
+function denormalizeRequest(req: HttpRequest, cookies: unknown): unknown {
   return {
     method: req.method,
     uri: req.uri,
     querystring: req.querystring,
     headers: req.headers,
-    cookies: {},
+    cookies,
   }
 }
 
@@ -39,10 +39,13 @@ function denormalizeResponse(res: HttpResponse): unknown {
 /** Creates a CloudFront Function viewer request handler that executes rules and returns a normalized response. */
 export function defineViewerRequest(rules: Rule[]): (event: unknown) => unknown {
   return (event) => {
+    const ev = event as Record<string, unknown>
+    const evReq = ev.request as Record<string, unknown>
+    const originalCookies = evReq.cookies ?? {}
     const req = normalizeRequest(event)
     const result = runRules(rules, req)
     if (result.action === 'respond') return denormalizeResponse(result.response)
-    return denormalizeRequest(result.request)
+    return denormalizeRequest(result.request, originalCookies)
   }
 }
 

@@ -47,6 +47,24 @@ describe('defineViewerRequest (CF Function)', () => {
     expect(capturedIp).toBe('1.2.3.4')
   })
 
+  it('preserves request cookies on pass-through', () => {
+    const handler = defineViewerRequest([
+      rule((req) => req.uri === '/no-match', redirect(302, '/new')),
+    ])
+    const cookies = { session: { value: 'abc123' }, token: { value: 'xyz' } }
+    const event = makeCfRequestEvent({ cookies })
+    const result = handler(event) as Record<string, unknown>
+    expect(result.cookies).toEqual(cookies)
+  })
+
+  it('preserves request cookies when rules modify headers', () => {
+    const handler = defineViewerRequest([])
+    const cookies = { _htc_access_token: { value: 'tok' } }
+    const event = makeCfRequestEvent({ cookies })
+    const result = handler(event) as Record<string, unknown>
+    expect(result.cookies).toEqual(cookies)
+  })
+
   it('reads country from cloudfront-viewer-country header', () => {
     let capturedCountry: string | undefined
     const handler = defineViewerRequest([
