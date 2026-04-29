@@ -25,8 +25,8 @@ import { redirect, constructResponse, setSecurityHeaders } from '@viverse/cf-eng
 import { defineViewerRequest } from '@viverse/cf-engine/adapters/cf-function'
 
 export default defineViewerRequest([
-  rule(not(ipCidr('10.0.0.0/8', '172.16.0.0/12')), redirect(302, '/blocked')),
-  rule(methodIs('OPTIONS'), constructResponse({ statusCode: 200, body: 'ok' })),
+  rule(not(ipCidr(['10.0.0.0/8', '172.16.0.0/12'])), redirect(302, '/blocked')),
+  rule(methodIs(['OPTIONS']), constructResponse({ statusCode: 200, body: 'ok' })),
   rule(setSecurityHeaders()),
 ])
 ```
@@ -35,9 +35,12 @@ Build and deploy:
 
 ```bash
 esbuild viewer-request.ts \
-  --bundle --minify --target=es2019 \
+  --bundle --minify --target=es2017 \
+  --supported:for-of=false --supported:template-literal=false --supported:arrow=false \
   --format=iife --global-name=handler \
   --outfile=dist/viewer-request.js
+# Append handler unwrap for IIFE compatibility:
+echo 'handler=handler.default||handler;' >> dist/viewer-request.js
 ```
 
 ## Concepts
@@ -47,8 +50,8 @@ Rules are composed of an optional **criteria** guard and a **behavior**. If crit
 ```typescript
 rule(criteria?, behavior)   // with or without criteria guard
 
-all(criteriaA, criteriaB)   // AND
-any(criteriaA, criteriaB)   // OR
+all([criteriaA, criteriaB])   // AND
+any([criteriaA, criteriaB])   // OR
 not(criteria)               // NOT
 ```
 
@@ -63,69 +66,19 @@ not(criteria)               // NOT
 
 ### Criteria
 
-| Akamai | cf-engine |
-|---|---|
-| `path` (STARTS_WITH) | `pathPrefix(...)` |
-| `path` (MATCHES_ONE_OF) | `pathEquals(...)` or `pathMatches(...)` |
-| `hostname` | `hostnameIs(...)` |
-| `fileExtension` | `fileExtension(...)` |
-| `requestHeader` | `headerEquals(...)` / `headerContains(...)` |
-| `requestMethod` | `methodIs(...)` |
-| `userAgent` | `userAgentMatches(...)` |
-| `userLocation` (COUNTRY) | `countryIs(...)` |
-| `clientip` | `ipCidr(...)` |
-| `matchVariable` | Replace with direct criterion — see variable mapping below |
-
-### Behaviors
-
-| Akamai | cf-engine | Notes |
-|---|---|---|
-| `redirect` / `redirectplus` | `redirect(status, url)` | |
-| `rewriteUrl` | `rewriteUri(mode, value)` | |
-| `constructResponse` | `constructResponse(options)` | |
-| `modifyOutgoingResponseHeader` SET | `setResponseHeader(name, value)` | |
-| `modifyOutgoingResponseHeader` DELETE | `removeResponseHeaders([...names])` | |
-| `modifyOutgoingRequestHeader` SET | `setRequestHeader(name, value)` | |
-| `modifyOutgoingRequestHeader` copy | `copyHeader(from, to)` | |
-| `httpStrictTransportSecurity` | `setSecurityHeaders()` | HSTS included |
-| `removeQueryParameter` | `stripQueryParams([...params])` | |
-| `imageManager` + `imOverride` | `imageOptimize(options)` | imgproxy URL rewrite |
-| `verifyTokenAuthorization` | `verifyToken(options)` | Lambda@Edge only |
-| `caching` (TTL) | `setCacheControl(options)` | max-age only |
-
-### Akamai Variable System
-
-`setVariable` + `matchVariable` patterns map to direct criteria:
-
-| Akamai Variable | cf-engine Equivalent |
-|---|---|
-| `setVariable(PMUSER_USER_COUNTRY_CODE, EDGESCAPE)` | `countryIs(...)` — reads `CloudFront-Viewer-Country` |
-| `setVariable(PMUSER_HEADER_ORIGIN)` | `headerEquals('origin', ...)` |
-| `setVariable(PMUSER_USER_AGENT_TRUNCATED)` | `userAgentMatches(...)` |
-
-### Skip These
-
-`cpCode`, `datastream`, `sureRoute`, `tieredDistribution`, `prefetch`, `cacheTagVisible`, `dnsAsyncRefresh` — Akamai-proprietary, no CloudFront equivalent.
-
-`origin`, `allowPost`, `gzipResponse`, `downstreamCache`, `webSockets` — CloudFront distribution config, handled by Terraform not cf-engine.
-
-## Available APIs
-
-### Criteria (`@viverse/cf-engine/criteria`)
-
 | Function | Description |
 |---|---|
-| `pathPrefix(...prefixes)` | URI starts with any of the given prefixes |
-| `pathEquals(...paths)` | URI exactly matches |
-| `pathMatches(...patterns)` | URI matches wildcard pattern (`*`, `?`) |
-| `hostnameIs(...hosts)` | Host header matches |
-| `methodIs(...methods)` | HTTP method matches |
-| `fileExtension(...exts)` | URI file extension matches |
-| `headerEquals(name, ...values)` | Request header equals one of the values |
+| `pathPrefix(prefixes)` | URI starts with any prefix in the array |
+| `pathEquals(paths)` | URI exactly matches any path in the array |
+| `pathMatches(patterns)` | URI matches any wildcard pattern (`*`, `?`) in the array |
+| `hostnameIs(hosts)` | Host header matches any host in the array |
+| `methodIs(methods)` | HTTP method matches any method in the array |
+| `fileExtension(exts)` | URI file extension matches any extension in the array |
+| `headerEquals(name, values)` | Request header equals any value in the array |
 | `headerContains(name, substring)` | Request header contains substring |
-| `ipCidr(...cidrs)` | Client IP is within any CIDR range |
-| `countryIs(...codes)` | `CloudFront-Viewer-Country` matches ISO code |
-| `userAgentMatches(...patterns)` | User-Agent matches wildcard pattern |
+| `ipCidr(cidrs)` | Client IP is within any CIDR range in the array |
+| `countryIs(codes)` | `CloudFront-Viewer-Country` matches any ISO code in the array |
+| `userAgentMatches(patterns)` | User-Agent matches any wildcard pattern in the array |
 
 ### Behaviors (`@viverse/cf-engine/behaviors`)
 
@@ -152,7 +105,7 @@ not(criteria)               // NOT
 | | CF Function | Lambda@Edge |
 |---|---|---|
 | Bundle size limit | **10 KB** | 1 MB (viewer), 50 MB (origin) |
-| Runtime | ES2019 (no Node.js APIs) | Node.js 20.x |
+| Runtime | ES 5.1 + select ES6–12 (see AWS docs) | Node.js 20.x |
 | Cold start | ~1 ms | ~100 ms |
 | Max execution time | 1 ms | 5 s (viewer) |
 | Environment variables | ❌ | ✅ (origin events only) |
@@ -179,9 +132,12 @@ If a bundle exceeds ~8 KB, split heavy rule groups into a Lambda@Edge and route 
 
 ```bash
 esbuild viewer-request.ts \
-  --bundle --minify --target=es2019 \
+  --bundle --minify --target=es2017 \
+  --supported:for-of=false --supported:template-literal=false --supported:arrow=false \
   --format=iife --global-name=handler \
   --outfile=dist/viewer-request.js
+# Append handler unwrap for IIFE compatibility:
+echo 'handler=handler.default||handler;' >> dist/viewer-request.js
 ```
 
 **Lambda@Edge:**
@@ -194,6 +150,49 @@ esbuild lambda-viewer-request.ts \
 ```
 
 > `dist/` must be committed in consumer repos — Terraform reads built files at `plan` time and cannot invoke a build step.
+
+## CF JS 2.0 Compatibility
+
+> **v1.1.0 Breaking Change**: All criteria and combinator functions now accept arrays instead of variadic arguments.
+> `ipCidr('a', 'b')` → `ipCidr(['a', 'b'])`, `all(fn1, fn2)` → `all([fn1, fn2])`.
+
+cf-engine source code is written to be directly compatible with the CloudFront JS 2.0 runtime. The runtime is documented as ES 5.1 compliant with select ES6–12 features, but in practice the parser rejects several ES6+ syntax patterns inside esbuild-minified IIFE bundles — even some that the official docs claim are supported.
+
+### Build flags (required for CF Function targets)
+
+```bash
+esbuild --target=es2017 \
+  --supported:for-of=false \
+  --supported:template-literal=false \
+  --supported:arrow=false \
+  --format=iife --global-name=handler
+# Then append: echo 'handler=handler.default||handler;' >> output.js
+```
+
+The handler unwrap is needed because esbuild IIFE wraps the export as `{default: fn}`, but CF expects a bare `handler` function.
+
+### Syntax avoided in cf-engine source
+
+These patterns are NOT used anywhere in cf-engine, so esbuild cannot emit them regardless of flags:
+
+| Pattern | Why avoided |
+|---------|------------|
+| `for...of` | Not in CF JS 2.0 statement list |
+| Object/array spread `{...x}` `[...x]` | Not documented as supported |
+| Rest parameters `...args` | Fails in minified IIFE bundles |
+| Destructuring `[a, b] = arr` | Fails in minified IIFE bundles |
+| Default parameters `f(x = 1)` | Not documented as supported |
+| `new Map` / `new Set` | Not documented as supported |
+
+### Syntax handled by esbuild flags
+
+| Pattern | esbuild flag | What esbuild does |
+|---------|-------------|-------------------|
+| Arrow functions `=>` | `--supported:arrow=false` | Converts to `function` |
+| Template literals `` ` `` | `--supported:template-literal=false` | Converts to string concat |
+| `for...of` | `--supported:for-of=false` | Converts to index loop |
+| Optional chaining `?.` | `--target=es2017` | Auto-downleveled |
+| Nullish coalescing `??` | `--target=es2017` | Auto-downleveled |
 
 ## Development
 

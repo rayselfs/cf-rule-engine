@@ -2,6 +2,12 @@ trigger:
   branches:
     include:
       - main
+  paths:
+    include:
+      - src/**
+      - package.json
+      - tsconfig.json
+      - tsup.config.ts
 
 pool:
   name: DevOps
@@ -50,11 +56,25 @@ stages:
             displayName: Build package
 
           - script: |
+              PACKAGE_NAME=$(node -p "require('./package.json').name")
+              LOCAL_VERSION=$(node -p "require('./package.json').version")
+              REMOTE_VERSION=$(npm view "${PACKAGE_NAME}" version 2>/dev/null || echo "0.0.0")
+              if [ "${LOCAL_VERSION}" = "${REMOTE_VERSION}" ]; then
+                echo "##[warning]Version ${LOCAL_VERSION} already published. Skipping."
+                echo "##vso[task.setvariable variable=skipPublish]true"
+              else
+                echo "Publishing ${PACKAGE_NAME}@${LOCAL_VERSION} (registry has ${REMOTE_VERSION})"
+                echo "##vso[task.setvariable variable=skipPublish]false"
+              fi
+            displayName: Check if version already published
+
+          - script: |
               NPM_AUTH=$(echo -n "$(NPM_USER):$(NPM_PASS)" | base64)
               echo "//vr-ops-internal-npm-registry.vrprod.viveport.com/:_auth=${NPM_AUTH}" >> .npmrc
               echo "//vr-ops-internal-npm-registry.vrprod.viveport.com/:always-auth=true" >> .npmrc
               npm publish
             displayName: Publish to Verdaccio
+            condition: ne(variables['skipPublish'], 'true')
             env:
               NPM_USER: $(NPM_USER)
               NPM_PASS: $(NPM_PASS)

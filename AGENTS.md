@@ -171,16 +171,48 @@ Lambda@Edge (viewer-request) — bound to behavior path: /section-b/*
 
 ## Known Pain Points
 
-### 1. CF Function ES5.1 Runtime
-CF Functions run ES5.1 compliant runtime, but also support select ES6–ES9 features (`const`, `let`, arrow functions, spread, destructuring). Use `--target=es2019` — esbuild cannot transform `const`/spread to pure ES5 and CF Functions don't need it.
+### 1. CF JS 2.0 Runtime Syntax Constraints
+
+CF Functions run on the `cloudfront-js-2.0` runtime, documented as ES 5.1 with select ES6–ES12 features. In practice, the CF parser rejects several ES6+ patterns inside esbuild-minified IIFE bundles — even some the official docs claim are supported (arrow functions, template literals, rest params).
+
+**cf-engine avoids all problematic syntax at the source level.** The build pipeline uses esbuild flags to downlevel remaining patterns:
 
 ```bash
-# Correct build command for Terraform consumption
 esbuild viewer-request.ts \
-  --bundle --minify --target=es2019 \
+  --bundle --minify --target=es2017 \
+  --supported:for-of=false --supported:template-literal=false --supported:arrow=false \
   --format=iife --global-name=handler \
   --outfile=dist/viewer-request.js
+# Append handler unwrap (IIFE exports {default: fn}, CF expects bare handler):
+echo 'handler=handler.default||handler;' >> dist/viewer-request.js
 ```
+
+**Syntax safety reference:**
+
+| Category | Syntax | Safe? | Notes |
+|----------|--------|-------|-------|
+| Statements | `var`, `let`, `const` | ✅ | |
+| Statements | `for`, `for-in`, `while` | ✅ | |
+| Statements | `for...of` | ❌ | Use `--supported:for-of=false` |
+| Statements | `async`, `await` | ✅ | Runtime 2.0 only |
+| Functions | `function` declaration | ✅ | |
+| Functions | Arrow `=>` | ⚠️ | Docs say supported; fails in minified IIFE. Use `--supported:arrow=false` |
+| Functions | Default params `f(x=1)` | ❌ | Not documented. Avoid in source |
+| Functions | Rest params `...args` | ⚠️ | Docs say supported; fails in minified IIFE. Avoid in source |
+| Literals | String concat `+` | ✅ | |
+| Literals | Template literals `` ` `` | ⚠️ | Docs say supported; fails in minified IIFE. Use `--supported:template-literal=false` |
+| Destructuring | Array `[a, b] = x` | ❌ | Fails in minified IIFE. Avoid in source |
+| Destructuring | Object `{a, b} = x` | ❌ | Not tested safe. Avoid in source |
+| Spread | `{...obj}`, `[...arr]` | ❌ | Not documented. Avoid in source |
+| Objects | `Object.assign()` | ✅ | ES6 |
+| Objects | `Object.entries()` | ✅ | ES8 |
+| Objects | `Object.fromEntries()` | ❌ | Not documented |
+| Objects | `new Map`, `new Set` | ❌ | Not documented |
+| Objects | `Symbol` | ✅ | Runtime 2.0 only |
+| Arrays | `.map()`, `.filter()`, `.reduce()`, `.some()`, `.every()` | ✅ | ES5.1 |
+| Arrays | `.includes()` | ✅ | ES7 |
+| Operators | `?.` optional chaining | ❌ | esbuild es2017 auto-downlevels |
+| Operators | `??` nullish coalescing | ❌ | esbuild es2017 auto-downlevels |
 
 ### 2. dist/ Must Be Committed in viverse-terraform
 Terraform reads `dist/*.js` at plan time. **Always commit built files** in the viverse-terraform repo. CI cannot build them at apply time.
@@ -212,7 +244,7 @@ The `imformat` query param maps: `chrome`/`webp` → WebP, `avif` → AVIF, `ie`
 Each CloudFront property in `viverse-terraform` should follow this structure:
 
 ```
-projects/cloudfront-<property>/
+projects/cloudfront/<property>/
   configs/
     viewer-request.ts     # cf-engine rules → CF Function
     viewer-response.ts    # cf-engine rules → CF Function  
@@ -229,9 +261,9 @@ projects/cloudfront-<property>/
 
 To build:
 ```bash
-cd projects/cloudfront-<property>
+cd projects/cloudfront/<property>
 npm install
-node build.mjs
+node build.mjs <property>
 ```
 
 ---
@@ -247,7 +279,7 @@ CF Functions and Lambda@Edge are referenced as **local file paths** in Terraform
 ```hcl
 resource "aws_cloudfront_function" "viewer_request" {
   name    = "cloudfront-${var.property}-viewer-request"
-  runtime = "cloudfront-js-1.0"
+  runtime = "cloudfront-js-2.0"
   publish = true
   code    = file("${path.module}/dist/viewer-request.js")
 }
