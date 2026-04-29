@@ -67,6 +67,11 @@ export function defineViewerResponse(responseBehaviors: Array<ResponseBehaviorFn
       }
     }
     const normalized = denormalizeResponse(response) as Record<string, unknown>
+    // Do not include body in viewer-response unless a behavior explicitly set it.
+    // An empty body would override the origin's actual response content.
+    if (!response.body) {
+      delete normalized.body
+    }
     return Object.assign({}, evRes as object, normalized)
   }
 }
