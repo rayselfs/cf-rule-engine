@@ -42,7 +42,7 @@ export function constructResponse(options: ConstructResponseOptions): BehaviorFn
         statusCode: options.statusCode,
         statusDescription: statusDescriptions[options.statusCode],
         headers,
-        ...(options.body !== undefined ? { body: options.body } : {}),
+        body: options.body,
       },
     }
   }

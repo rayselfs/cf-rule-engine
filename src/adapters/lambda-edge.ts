@@ -67,12 +67,11 @@ export function defineViewerRequest(rules: Rule[]): (event: unknown) => unknown 
         body: result.response.body ?? '',
       }
     }
-    return {
-      ...lambdaReq,
+    return Object.assign({}, lambdaReq, {
       uri: result.request.uri,
       querystring: serializeQuerystring(result.request.querystring),
       headers: denormalizeHeaders(result.request.headers),
-    }
+    })
   }
 }
 
@@ -110,11 +109,10 @@ export function defineViewerResponse(responseBehaviors: Array<ResponseBehaviorFn
         response = entry.behavior(req, response)
       }
     }
-    return {
-      ...lambdaRes,
+    return Object.assign({}, lambdaRes, {
       status: String(response.statusCode),
       statusDescription: response.statusDescription,
       headers: denormalizeHeaders(response.headers),
-    }
+    })
   }
 }

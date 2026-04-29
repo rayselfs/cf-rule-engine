@@ -10,23 +10,23 @@ const req = (host?: string): HttpRequest => ({
 
 describe('hostnameIs', () => {
   it('returns true for matching host', () => {
-    expect(hostnameIs('example.com')(req('example.com'))).toBe(true)
+    expect(hostnameIs(['example.com'])(req('example.com'))).toBe(true)
   })
 
   it('is case-insensitive', () => {
-    expect(hostnameIs('example.com')(req('EXAMPLE.COM'))).toBe(true)
+    expect(hostnameIs(['example.com'])(req('EXAMPLE.COM'))).toBe(true)
   })
 
   it('returns false for non-matching host', () => {
-    expect(hostnameIs('example.com')(req('other.com'))).toBe(false)
+    expect(hostnameIs(['example.com'])(req('other.com'))).toBe(false)
   })
 
   it('returns false when host header is missing', () => {
-    expect(hostnameIs('example.com')(req())).toBe(false)
+    expect(hostnameIs(['example.com'])(req())).toBe(false)
   })
 
   it('supports multiple hostnames', () => {
-    const fn = hostnameIs('example.com', 'www.example.com')
+    const fn = hostnameIs(['example.com', 'www.example.com'])
     expect(fn(req('www.example.com'))).toBe(true)
     expect(fn(req('other.com'))).toBe(false)
   })

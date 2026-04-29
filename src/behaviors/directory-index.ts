@@ -6,7 +6,7 @@ export function directoryIndex(indexFile: string = 'index.html'): BehaviorFn {
     const uri = request.uri
 
     if (uri.endsWith('/')) {
-      return { action: 'continue', request: { ...request, uri: uri + indexFile } }
+      return { action: 'continue', request: Object.assign({}, request, { uri: uri + indexFile }) }
     }
 
     if (uri.endsWith('/' + indexFile)) {

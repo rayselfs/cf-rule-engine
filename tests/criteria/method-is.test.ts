@@ -8,19 +8,19 @@ const req = (method: string): HttpRequest => ({
 
 describe('methodIs', () => {
   it('returns true for matching method', () => {
-    expect(methodIs('GET')(req('GET'))).toBe(true)
+    expect(methodIs(['GET'])(req('GET'))).toBe(true)
   })
 
   it('is case-insensitive', () => {
-    expect(methodIs('GET')(req('get'))).toBe(true)
+    expect(methodIs(['GET'])(req('get'))).toBe(true)
   })
 
   it('returns false for non-matching method', () => {
-    expect(methodIs('GET')(req('POST'))).toBe(false)
+    expect(methodIs(['GET'])(req('POST'))).toBe(false)
   })
 
   it('supports multiple methods', () => {
-    const fn = methodIs('GET', 'HEAD')
+    const fn = methodIs(['GET', 'HEAD'])
     expect(fn(req('HEAD'))).toBe(true)
     expect(fn(req('POST'))).toBe(false)
   })

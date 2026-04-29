@@ -10,12 +10,10 @@ export function setCsp(options: CspOptions): ResponseBehaviorFn {
     .join('; ')
 
   return (_request: HttpRequest, response: HttpResponse): HttpResponse => {
-    return {
-      ...response,
-      headers: {
-        ...response.headers,
+    return Object.assign({}, response, {
+      headers: Object.assign({}, response.headers, {
         'content-security-policy': { value: cspValue },
-      },
-    }
+      }),
+    })
   }
 }

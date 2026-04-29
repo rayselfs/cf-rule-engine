@@ -12,14 +12,12 @@ export function setSecurityHeaders(options?: SecurityHeadersOptions): ResponseBe
   const xContentTypeOptions = options?.xContentTypeOptions ?? 'nosniff'
 
   return (_request: HttpRequest, response: HttpResponse): HttpResponse => {
-    return {
-      ...response,
-      headers: {
-        ...response.headers,
+    return Object.assign({}, response, {
+      headers: Object.assign({}, response.headers, {
         'strict-transport-security': { value: hsts },
         'x-frame-options': { value: xFrameOptions },
         'x-content-type-options': { value: xContentTypeOptions },
-      },
-    }
+      }),
+    })
   }
 }

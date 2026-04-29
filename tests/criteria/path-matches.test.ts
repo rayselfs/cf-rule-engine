@@ -8,23 +8,23 @@ const req = (uri: string): HttpRequest => ({
 
 describe('pathMatches', () => {
   it('matches wildcard *', () => {
-    expect(pathMatches('/api/*')(req('/api/users'))).toBe(true)
+    expect(pathMatches(['/api/*'])(req('/api/users'))).toBe(true)
   })
 
   it('matches wildcard ?', () => {
-    expect(pathMatches('/api/?')(req('/api/v'))).toBe(true)
+    expect(pathMatches(['/api/?'])(req('/api/v'))).toBe(true)
   })
 
   it('returns false for no wildcard match', () => {
-    expect(pathMatches('/api/*')(req('/other/users'))).toBe(false)
+    expect(pathMatches(['/api/*'])(req('/other/users'))).toBe(false)
   })
 
   it('strips querystring before matching', () => {
-    expect(pathMatches('/api/*')(req('/api/users?foo=bar'))).toBe(true)
+    expect(pathMatches(['/api/*'])(req('/api/users?foo=bar'))).toBe(true)
   })
 
   it('supports multiple patterns', () => {
-    const fn = pathMatches('/api/*', '/admin/*')
+    const fn = pathMatches(['/api/*', '/admin/*'])
     expect(fn(req('/admin/settings'))).toBe(true)
     expect(fn(req('/public/page'))).toBe(false)
   })

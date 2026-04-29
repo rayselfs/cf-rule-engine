@@ -20,7 +20,7 @@ describe('removeResponseHeaders', () => {
         'content-type': { value: 'text/html' },
       },
     }
-    const fn = removeResponseHeaders('X-Powered-By', 'Server')
+    const fn = removeResponseHeaders(['X-Powered-By', 'Server'])
     const result = fn(baseRequest, response)
     expect(result.headers['x-powered-by']).toBeUndefined()
     expect(result.headers['server']).toBeUndefined()
@@ -29,7 +29,7 @@ describe('removeResponseHeaders', () => {
 
   it('is a no-op for missing headers', () => {
     const response = { statusCode: 200, headers: { 'content-type': { value: 'text/html' } } }
-    const fn = removeResponseHeaders('x-missing')
+    const fn = removeResponseHeaders(['x-missing'])
     const result = fn(baseRequest, response)
     expect(result.headers).toEqual({ 'content-type': { value: 'text/html' } })
   })

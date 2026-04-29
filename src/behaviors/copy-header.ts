@@ -9,13 +9,11 @@ export function copyHeader(sourceHeader: string, targetHeader: string): Behavior
     }
     return {
       action: 'continue',
-      request: {
-        ...request,
-        headers: {
-          ...request.headers,
+      request: Object.assign({}, request, {
+        headers: Object.assign({}, request.headers, {
           [targetHeader.toLowerCase()]: { value: sourceValue },
-        },
-      },
+        }),
+      }),
     }
   }
 }

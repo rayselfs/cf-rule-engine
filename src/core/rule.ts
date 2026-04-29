@@ -12,12 +12,12 @@ export function rule(criteriaOrBehavior: CriteriaFn | BehaviorFn, behavior?: Beh
 }
 
 /** Combines multiple criteria functions with AND logic. */
-export function all(...fns: CriteriaFn[]): CriteriaFn {
+export function all(fns: CriteriaFn[]): CriteriaFn {
   return (req) => fns.every(fn => fn(req))
 }
 
 /** Combines multiple criteria functions with OR logic. */
-export function any(...fns: CriteriaFn[]): CriteriaFn {
+export function any(fns: CriteriaFn[]): CriteriaFn {
   return (req) => fns.some(fn => fn(req))
 }
 

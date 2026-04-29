@@ -10,23 +10,23 @@ const req = (country?: string): HttpRequest => ({
 
 describe('countryIs', () => {
   it('returns true for matching country code', () => {
-    expect(countryIs('TW')(req('TW'))).toBe(true)
+    expect(countryIs(['TW'])(req('TW'))).toBe(true)
   })
 
   it('is case-insensitive', () => {
-    expect(countryIs('TW')(req('tw'))).toBe(true)
+    expect(countryIs(['TW'])(req('tw'))).toBe(true)
   })
 
   it('returns false for non-matching country', () => {
-    expect(countryIs('TW')(req('US'))).toBe(false)
+    expect(countryIs(['TW'])(req('US'))).toBe(false)
   })
 
   it('returns false when header is missing', () => {
-    expect(countryIs('TW')(req())).toBe(false)
+    expect(countryIs(['TW'])(req())).toBe(false)
   })
 
   it('supports multiple country codes', () => {
-    const fn = countryIs('TW', 'JP')
+    const fn = countryIs(['TW', 'JP'])
     expect(fn(req('JP'))).toBe(true)
     expect(fn(req('US'))).toBe(false)
   })

@@ -12,7 +12,7 @@ const makeRequest = (querystring: Record<string, { value: string }>) => ({
 
 describe('stripQueryParams', () => {
   it('removes specified query params', () => {
-    const fn = stripQueryParams('utm_source', 'utm_medium')
+    const fn = stripQueryParams(['utm_source', 'utm_medium'])
     const result = fn(makeRequest({ utm_source: { value: 'google' }, utm_medium: { value: 'cpc' }, foo: { value: 'bar' } }))
     expect(result.action).toBe('continue')
     if (result.action === 'continue') {
@@ -23,7 +23,7 @@ describe('stripQueryParams', () => {
   })
 
   it('is a no-op when params not present', () => {
-    const fn = stripQueryParams('missing')
+    const fn = stripQueryParams(['missing'])
     const qs = { foo: { value: 'bar' } }
     const result = fn(makeRequest(qs))
     if (result.action === 'continue') {

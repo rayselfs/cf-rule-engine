@@ -2,12 +2,10 @@ import type { ResponseBehaviorFn, HttpRequest, HttpResponse } from '../core/type
 
 export function setResponseHeader(headerName: string, value: string): ResponseBehaviorFn {
   return (_request: HttpRequest, response: HttpResponse): HttpResponse => {
-    return {
-      ...response,
-      headers: {
-        ...response.headers,
+    return Object.assign({}, response, {
+      headers: Object.assign({}, response.headers, {
         [headerName.toLowerCase()]: { value },
-      },
-    }
+      }),
+    })
   }
 }

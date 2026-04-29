@@ -1,7 +1,7 @@
 import type { CriteriaFn } from '../core/types.js'
 
 /** Returns true if the request path has any of the given file extensions (case-insensitive). */
-export function fileExtension(...extensions: string[]): CriteriaFn {
+export function fileExtension(extensions: string[]): CriteriaFn {
   return (req) => {
     const path = req.uri.split('?')[0]
     const dot = path.lastIndexOf('.')

@@ -47,9 +47,8 @@ export function setCorsHeaders(options?: CorsOptions): ResponseBehaviorFn {
       corsHeaders['access-control-max-age'] = { value: String(options.maxAge) }
     }
 
-    return {
-      ...response,
-      headers: { ...response.headers, ...corsHeaders },
-    }
+    return Object.assign({}, response, {
+      headers: Object.assign({}, response.headers, corsHeaders),
+    })
   }
 }

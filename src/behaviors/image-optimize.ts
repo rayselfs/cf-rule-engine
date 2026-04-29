@@ -14,7 +14,7 @@ export interface ImageOptimizeOptions {
 }
 
 function selectBreakpoint(width: number, breakpoints: number[]): number {
-  const sorted = [...breakpoints].sort((a, b) => a - b)
+  const sorted = breakpoints.slice().sort((a, b) => a - b)
   for (let i = 0; i < sorted.length; i++) {
     if (sorted[i] >= width) return sorted[i]
   }
@@ -54,7 +54,7 @@ function selectFormat(
 export function imageOptimize(options: ImageOptimizeOptions): BehaviorFn {
   const formats = options.formats ?? ['avif', 'webp', 'jpeg']
   const quality = options.quality ?? 85
-  const sortedBreakpoints = [...options.breakpoints].sort((a, b) => a - b)
+  const sortedBreakpoints = options.breakpoints.slice().sort((a, b) => a - b)
   const imwidthParamName = options.imwidthParam ?? 'imwidth'
   const imformatParamName = options.imformatParam ?? 'imformat'
 
@@ -88,6 +88,6 @@ export function imageOptimize(options: ImageOptimizeOptions): BehaviorFn {
 
     const uri = `${options.serviceEndpoint}/rs:fit:${breakpoint}/f:${format}/q:${quality}/plain/${options.sourceBaseUrl}${request.uri}`
 
-    return { action: 'continue', request: { ...request, uri } }
+    return { action: 'continue', request: Object.assign({}, request, { uri }) }
   }
 }

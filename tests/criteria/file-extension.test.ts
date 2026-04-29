@@ -8,27 +8,27 @@ const req = (uri: string): HttpRequest => ({
 
 describe('fileExtension', () => {
   it('returns true for matching extension', () => {
-    expect(fileExtension('js')(req('/app.js'))).toBe(true)
+    expect(fileExtension(['js'])(req('/app.js'))).toBe(true)
   })
 
   it('is case-insensitive', () => {
-    expect(fileExtension('js')(req('/app.JS'))).toBe(true)
+    expect(fileExtension(['js'])(req('/app.JS'))).toBe(true)
   })
 
   it('returns false for non-matching extension', () => {
-    expect(fileExtension('js')(req('/app.css'))).toBe(false)
+    expect(fileExtension(['js'])(req('/app.css'))).toBe(false)
   })
 
   it('strips querystring before extracting extension', () => {
-    expect(fileExtension('js')(req('/app.js?v=1'))).toBe(true)
+    expect(fileExtension(['js'])(req('/app.js?v=1'))).toBe(true)
   })
 
   it('returns false when no extension', () => {
-    expect(fileExtension('js')(req('/about'))).toBe(false)
+    expect(fileExtension(['js'])(req('/about'))).toBe(false)
   })
 
   it('supports multiple extensions', () => {
-    const fn = fileExtension('js', 'css', 'png')
+    const fn = fileExtension(['js', 'css', 'png'])
     expect(fn(req('/style.css'))).toBe(true)
     expect(fn(req('/page.html'))).toBe(false)
   })

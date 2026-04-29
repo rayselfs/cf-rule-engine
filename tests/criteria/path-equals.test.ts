@@ -8,24 +8,24 @@ const req = (uri: string): HttpRequest => ({
 
 describe('pathEquals', () => {
   it('returns true for exact match', () => {
-    expect(pathEquals('/about')(req('/about'))).toBe(true)
+    expect(pathEquals(['/about'])(req('/about'))).toBe(true)
   })
 
   it('returns false for partial match', () => {
-    expect(pathEquals('/about')(req('/about/us'))).toBe(false)
+    expect(pathEquals(['/about'])(req('/about/us'))).toBe(false)
   })
 
   it('returns false for no match', () => {
-    expect(pathEquals('/about')(req('/home'))).toBe(false)
+    expect(pathEquals(['/about'])(req('/home'))).toBe(false)
   })
 
   it('supports multiple paths', () => {
-    const fn = pathEquals('/about', '/contact')
+    const fn = pathEquals(['/about', '/contact'])
     expect(fn(req('/contact'))).toBe(true)
     expect(fn(req('/home'))).toBe(false)
   })
 
   it('is case-sensitive', () => {
-    expect(pathEquals('/About')(req('/about'))).toBe(false)
+    expect(pathEquals(['/About'])(req('/about'))).toBe(false)
   })
 })

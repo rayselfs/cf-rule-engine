@@ -59,11 +59,11 @@ const STAGE_WHITELIST_IPS = [
 
 const viewerRequestRules: Rule[] = [
   rule(
-    all(
-      not(ipCidr(...STAGE_WHITELIST_IPS)),
-      not(userAgentMatches('*HTCVRSDET*', '*Prerender*', '*HTC3PARTY*')),
+    all([
+      not(ipCidr(STAGE_WHITELIST_IPS)),
+      not(userAgentMatches(['*HTCVRSDET*', '*Prerender*', '*HTC3PARTY*'])),
       not(
-        pathMatches(
+        pathMatches([
           '/akamai/*',
           '/favicon.ico',
           '/rest/*',
@@ -71,27 +71,27 @@ const viewerRequestRules: Rule[] = [
           '/graphql*',
           '/management/*',
           '/polygon_file/*',
-        ),
+        ]),
       ),
-    ),
+    ]),
     redirect(302, 'https://stream.viverse.com/console'),
   ),
 
-  rule(pathMatches('/metrics'), redirect(302, '/')),
+  rule(pathMatches(['/metrics']), redirect(302, '/')),
 
-  rule(pathEquals('/'), rewriteUri('set', '/console/landing')),
+  rule(pathEquals(['/']), rewriteUri('set', '/console/landing')),
 
-  rule(methodIs('OPTIONS'), constructResponse({ statusCode: 200, body: 'ok' })),
+  rule(methodIs(['OPTIONS']), constructResponse({ statusCode: 200, body: 'ok' })),
 
   rule(copyHeader('CloudFront-Viewer-Country', 'X-HTC-Request-Country-Code')),
 ]
 
 const viewerResponseRules: { criteria?: (req: HttpRequest) => boolean; behavior: ResponseBehaviorFn }[] = [
   {
-    criteria: all(
-      hostnameIs('stream-stage.viverse.com'),
+    criteria: all([
+      hostnameIs(['stream-stage.viverse.com']),
       (req) => matchesWildcard(req.headers['origin']?.value ?? '', 'https://*.viverse.com'),
-    ),
+    ]),
     behavior: setCorsHeaders({
       allowOriginEcho: true,
       allowedOrigins: ['https://*.viverse.com'],
@@ -101,17 +101,17 @@ const viewerResponseRules: { criteria?: (req: HttpRequest) => boolean; behavior:
   },
 
   {
-    criteria: all(
-      pathMatches(
+    criteria: all([
+      pathMatches([
         '/assets/downloads/*',
         '/assets/streamablemodel/*',
         '/demos/dinosaurs-107m/*',
         '/demos/jet/*',
         '/marketing/transparent-bg/*',
         '/polygon_file/*',
-      ),
+      ]),
       (req) => !!req.headers['origin']?.value,
-    ),
+    ]),
     behavior: setCorsHeaders({
       allowedOrigins: ['*'],
       allowedMethods: 'GET, POST, OPTIONS',

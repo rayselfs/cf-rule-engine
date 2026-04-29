@@ -18,48 +18,48 @@ const makeRequest = (overrides: Partial<HttpRequest> = {}): HttpRequest => ({
 
 describe('all()', () => {
   it('returns true when ALL criteria pass', () => {
-    const fn = all(
+    const fn = all([
       () => true,
       () => true,
       () => true,
-    )
+    ])
     expect(fn(makeRequest())).toBe(true)
   })
 
   it('returns false if any criteria fails', () => {
-    const fn = all(
+    const fn = all([
       () => true,
       () => false,
       () => true,
-    )
+    ])
     expect(fn(makeRequest())).toBe(false)
   })
 
   it('returns true for empty criteria list', () => {
-    expect(all()(makeRequest())).toBe(true)
+    expect(all([])(makeRequest())).toBe(true)
   })
 })
 
 describe('any()', () => {
   it('returns true when at least one criteria passes', () => {
-    const fn = any(
+    const fn = any([
       () => false,
       () => true,
       () => false,
-    )
+    ])
     expect(fn(makeRequest())).toBe(true)
   })
 
   it('returns false when all criteria fail', () => {
-    const fn = any(
+    const fn = any([
       () => false,
       () => false,
-    )
+    ])
     expect(fn(makeRequest())).toBe(false)
   })
 
   it('returns false for empty criteria list', () => {
-    expect(any()(makeRequest())).toBe(false)
+    expect(any([])(makeRequest())).toBe(false)
   })
 })
 

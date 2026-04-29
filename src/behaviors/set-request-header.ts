@@ -5,13 +5,11 @@ export function setRequestHeader(headerName: string, value: string): BehaviorFn 
   return (request: HttpRequest) => {
     return {
       action: 'continue',
-      request: {
-        ...request,
-        headers: {
-          ...request.headers,
+      request: Object.assign({}, request, {
+        headers: Object.assign({}, request.headers, {
           [headerName.toLowerCase()]: { value },
-        },
-      },
+        }),
+      }),
     }
   }
 }

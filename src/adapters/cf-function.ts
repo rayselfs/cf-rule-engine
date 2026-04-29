@@ -67,6 +67,6 @@ export function defineViewerResponse(responseBehaviors: Array<ResponseBehaviorFn
       }
     }
     const normalized = denormalizeResponse(response) as Record<string, unknown>
-    return { ...(evRes as object), ...normalized }
+    return Object.assign({}, evRes as object, normalized)
   }
 }

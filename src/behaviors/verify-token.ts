@@ -27,14 +27,15 @@ function parseToken(raw: string): Record<string, string> | null {
 }
 
 function verifyHmac(fields: Record<string, string>, keyHex: string): boolean {
-  const { hmac, ...rest } = fields
-  if (!hmac) return false
-  const message = Object.entries(rest).map(([k, v]) => `${k}=${v}`).join('~')
+  var hmacVal = fields['hmac']
+  if (!hmacVal) return false
+  var restKeys = Object.keys(fields).filter(function(k) { return k !== 'hmac' })
+  var message = restKeys.map(function(k) { return k + '=' + fields[k] }).join('~')
   let keyBytes: Buffer
   try { keyBytes = Buffer.from(keyHex, 'hex') } catch { return false }
   const expected = createHmac('sha256', keyBytes).update(message).digest()
   let actual: Buffer
-  try { actual = Buffer.from(hmac, 'hex') } catch { return false }
+  try { actual = Buffer.from(hmacVal, 'hex') } catch { return false }
   if (expected.length !== actual.length) return false
   return timingSafeEqual(expected, actual) // timing-safe: prevents HMAC oracle attacks
 }

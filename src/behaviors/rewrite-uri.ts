@@ -25,6 +25,6 @@ export function rewriteUri(mode: RewriteMode, target: string, match?: string): B
         }
         break
     }
-    return { action: 'continue', request: { ...request, uri } }
+    return { action: 'continue', request: Object.assign({}, request, { uri }) }
   }
 }
