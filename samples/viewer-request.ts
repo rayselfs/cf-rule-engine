@@ -44,25 +44,25 @@ export default defineViewerRequest([
   // Block requests from non-whitelisted IPs without whitelisted user agents,
   // unless they're accessing bypass paths (static assets, APIs, etc.)
   rule(
-    all(
-      not(ipCidr(...WHITELIST_CIDRS)),
-      not(userAgentMatches(...WHITELIST_UA_SUBSTRINGS)),
-      not(pathMatches(...BYPASS_PATHS)),
-    ),
+    all([
+      not(ipCidr(WHITELIST_CIDRS)),
+      not(userAgentMatches(WHITELIST_UA_SUBSTRINGS)),
+      not(pathMatches(BYPASS_PATHS)),
+    ]),
     redirect(302, 'https://stream.viverse.com/console'),
   ),
 
   // Rule 2: Block /metrics endpoint
   // Deny access to internal metrics endpoint
-  rule(pathMatches('/metrics'), redirect(302, '/')),
+  rule(pathMatches(['/metrics']), redirect(302, '/')),
 
   // Rule 3: Root path rewrite
   // Rewrite requests to / to /console/landing
-  rule(pathMatches('/'), rewriteUri('set', '/console/landing')),
+  rule(pathMatches(['/'])), rewriteUri('set', '/console/landing')),
 
   // Rule 4: CORS preflight
   // Return 200 OK for OPTIONS requests
-  rule(methodIs('OPTIONS'), constructResponse({ statusCode: 200, body: 'ok' })),
+  rule(methodIs(['OPTIONS']), constructResponse({ statusCode: 200, body: 'ok' })),
 
   // Rule 5: Copy CloudFront country header
   // Pass through CloudFront's country detection to downstream services

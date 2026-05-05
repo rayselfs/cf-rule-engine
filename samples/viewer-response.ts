@@ -30,10 +30,10 @@ export default defineViewerResponse([
   // For requests to stream-stage.viverse.com with origins from *.viverse.com,
   // echo back the origin (ACAO = Access-Control-Allow-Origin).
   {
-    criteria: all(
-      hostnameIs('stream-stage.viverse.com'),
+    criteria: all([
+      hostnameIs(['stream-stage.viverse.com']),
       (req) => (req.headers['origin']?.value ?? '').includes('.viverse.com'),
-    ),
+    ]),
     behavior: setCorsHeaders({
       allowOriginEcho: true,
       allowedOrigins: ['https://*.viverse.com'],
@@ -45,10 +45,10 @@ export default defineViewerResponse([
   // Behavior 2: Public asset CORS
   // For publicly accessible asset paths, allow CORS from any origin.
   {
-    criteria: all(
-      pathMatches(...ASSET_PATHS),
+    criteria: all([
+      pathMatches(ASSET_PATHS),
       (req) => !!req.headers['origin']?.value,
-    ),
+    ]),
     behavior: setCorsHeaders({
       allowedOrigins: ['*'],
       allowedMethods: 'GET, POST, OPTIONS',
