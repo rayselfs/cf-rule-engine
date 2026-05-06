@@ -40,6 +40,10 @@ export default defineConfig({
     // adapters
     'src/adapters/cf-function.ts',
     'src/adapters/lambda-edge.ts',
+    // helpers
+    'src/helpers/index.ts',
+    'src/helpers/send-country-code.ts',
+    'src/helpers/viverse-whitelist.ts',
   ],
   format: ['cjs', 'esm'],
   dts: true,

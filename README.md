@@ -100,6 +100,48 @@ not(criteria)               // NOT
 | `imageOptimize(options)` | ✅ | ✅ |
 | `verifyToken(options)` | ❌ | ✅ |
 
+## Helpers (`@viverse/cf-engine/helpers`)
+
+Helpers are pre-configured rule factories that combine multiple criteria and behaviors for common use cases.
+
+### sendCountryCode
+
+Copies the `CloudFront-Viewer-Country` header to a custom header (default: `x-htc-request-country-code`).
+
+```typescript
+import { sendCountryCode } from '@viverse/cf-engine/helpers'
+
+rule(sendCountryCode())
+rule(sendCountryCode('x-custom-country'))
+```
+
+### viverseWhitelist
+
+Enforces IP and User-Agent allowlists for HTC internal access. Designed for stage environments — blocks unknown clients with a 302 redirect.
+
+**Default allowlists** (HTC internal):
+- **CIDRs**: HTC offices (61.218.44.76/32, 122.147.213.24/32, 60.251.61.121/32, 162.120.184.42/32), VPN (175.98.157.254/32, 122.147.173.254/32), stage VPCs (52.33.9.56/32, 52.35.160.39/32, 50.112.203.191/32)
+- **User-Agents**: `*HTCVRSDET*`, `*Prerender*`, `*HTC3PARTY*`
+
+```typescript
+import { viverseWhitelist } from '@viverse/cf-engine/helpers'
+
+viverseWhitelist({ redirectUrl: 'https://www.viverse.com' })
+
+viverseWhitelist({
+  redirectUrl: 'https://www.viverse.com',
+  additionalCidrs: ['198.51.100.0/24'],
+  additionalUAs: ['*CustomBot*'],
+  bypassPaths: ['/api/*', '/health'],
+})
+```
+
+**Parameters:**
+- `redirectUrl` (required): Where to redirect blocked requests
+- `additionalCidrs`: Project-specific CIDRs merged with defaults
+- `additionalUAs`: Project-specific user agents merged with defaults
+- `bypassPaths`: Paths exempt from whitelist checks (supports wildcards)
+
 ## CF Function vs Lambda@Edge
 
 | | CF Function | Lambda@Edge |
