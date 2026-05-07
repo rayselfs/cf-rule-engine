@@ -36,7 +36,32 @@ function denormalizeResponse(res: HttpResponse): unknown {
   }
 }
 
-/** Creates a CloudFront Function viewer request handler that executes rules and returns a normalized response. */
+/**
+ * Creates a CloudFront Function viewer-request handler from an ordered list of rules.
+ *
+ * The returned function is the CloudFront Function entry point. Assign it as
+ * `export default` or `var handler` depending on your runtime configuration.
+ *
+ * Rules are evaluated in order. Processing stops at the first rule whose behavior
+ * returns a response (e.g. `redirect`, `constructResponse`). If all rules continue,
+ * the (possibly mutated) request is forwarded to the origin.
+ *
+ * @param rules - Ordered array of `Rule` objects created with `rule()`.
+ * @returns A CloudFront Function handler `(event) => request | response`.
+ *
+ * @example
+ * ```ts
+ * import { rule, not } from '@viverse/cf-engine'
+ * import { ipCidr, pathPrefix } from '@viverse/cf-engine/criteria'
+ * import { redirect, setRequestHeader } from '@viverse/cf-engine/behaviors'
+ * import { defineViewerRequest } from '@viverse/cf-engine/adapters/cf-function'
+ *
+ * export default defineViewerRequest([
+ *   rule(not(ipCidr(['10.0.0.0/8'])), redirect(302, 'https://www.viverse.com')),
+ *   rule(pathPrefix(['/api/']), setRequestHeader('x-forwarded-host', 'api.internal')),
+ * ])
+ * ```
+ */
 export function defineViewerRequest(rules: Rule[]): (event: unknown) => unknown {
   return (event) => {
     const ev = event as Record<string, unknown>
@@ -49,7 +74,38 @@ export function defineViewerRequest(rules: Rule[]): (event: unknown) => unknown 
   }
 }
 
-/** Creates a CloudFront Function viewer response handler that applies response behaviors and returns a normalized response. */
+/**
+ * Creates a CloudFront Function viewer-response handler from an ordered list of
+ * response behaviors or response rules.
+ *
+ * Each entry can be either:
+ * - A bare `ResponseBehaviorFn` — runs unconditionally on every response.
+ * - A `ResponseRule` `{ criteria, behavior }` — runs only when `criteria` returns `true`
+ *   for the current request.
+ *
+ * All behaviors are applied in order; none can short-circuit the response.
+ * The final merged response object is returned to CloudFront.
+ *
+ * Note: If no behavior explicitly sets a body, the `body` field is omitted from
+ * the returned response to avoid overwriting the origin's actual content.
+ *
+ * @param responseBehaviors - Ordered array of `ResponseBehaviorFn` functions or
+ *   `ResponseRule` objects `{ criteria?, behavior }`.
+ * @returns A CloudFront Function handler `(event) => response`.
+ *
+ * @example
+ * ```ts
+ * import { setSecurityHeaders, setCorsHeaders, setResponseHeader } from '@viverse/cf-engine/behaviors'
+ * import { pathPrefix } from '@viverse/cf-engine/criteria'
+ * import { defineViewerResponse } from '@viverse/cf-engine/adapters/cf-function'
+ *
+ * export default defineViewerResponse([
+ *   setSecurityHeaders(),
+ *   setCorsHeaders({ allowedOrigins: ['https://www.viverse.com'] }),
+ *   { criteria: pathPrefix(['/api/']), behavior: setResponseHeader('cache-control', 'no-store') },
+ * ])
+ * ```
+ */
 export function defineViewerResponse(responseBehaviors: Array<ResponseBehaviorFn | ResponseRule>): (event: unknown) => unknown {
   return (event) => {
     const ev = event as Record<string, unknown>

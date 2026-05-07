@@ -1,6 +1,33 @@
 import type { BehaviorFn, HttpRequest } from '../core/types.js'
 
-/** Manages directory index routing: appends index file to directory requests, redirects /path/index.html to /path/, and redirects /path to /path/. */
+/**
+ * Handles directory index routing for static site hosting, applying three transformations:
+ *
+ * 1. **Directory request** (`/path/`) → rewrites URI to `/path/index.html` (or custom file).
+ * 2. **Index file request** (`/path/index.html`) → 301 redirects to `/path/`.
+ * 3. **Extensionless path** (`/path/about`) → 301 redirects to `/path/about/`.
+ *
+ * This mirrors the behavior of S3 static website hosting when accessed via CloudFront
+ * without using an S3 website endpoint.
+ *
+ * @param indexFile - The index file name to append to directory URIs.
+ *   Default: `'index.html'`.
+ * @returns A `BehaviorFn` to use as the second argument to `rule()`.
+ *
+ * @example
+ * ```ts
+ * import { directoryIndex } from '@viverse/cf-engine/behaviors'
+ * import { rule } from '@viverse/cf-engine'
+ * import { defineViewerRequest } from '@viverse/cf-engine/adapters/cf-function'
+ *
+ * export default defineViewerRequest([
+ *   rule(directoryIndex()),
+ * ])
+ *
+ * // With a custom index file
+ * rule(directoryIndex('default.html'))
+ * ```
+ */
 export function directoryIndex(indexFile?: string): BehaviorFn {
   const file = indexFile || 'index.html'
   return (request: HttpRequest) => {

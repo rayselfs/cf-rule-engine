@@ -50,7 +50,34 @@ function serializeQuerystring(qs: Record<string, { value: string }>): string {
   return parts.join('&')
 }
 
-/** Creates a Lambda@Edge viewer request handler that executes rules and returns a normalized CloudFront event response. */
+/**
+ * Creates a Lambda@Edge viewer-request handler from an ordered list of rules.
+ *
+ * The returned async function is the Lambda handler entry point. Export it as
+ * `export const handler` and set `handler = "index.handler"` in the Lambda config.
+ *
+ * Rules are evaluated in order. Processing stops at the first rule whose behavior
+ * returns a response (e.g. `redirect`, `constructResponse`). If all rules continue,
+ * the (possibly mutated) request is forwarded to the origin.
+ *
+ * Header format differences from CF Function are handled automatically by this adapter —
+ * Lambda@Edge uses `[{ key, value }]` arrays; cf-engine uses `{ value }` flat objects.
+ *
+ * @param rules - Ordered array of `Rule` objects created with `rule()`.
+ * @returns An async Lambda handler `async (event) => request | response`.
+ *
+ * @example
+ * ```ts
+ * import { rule } from '@viverse/cf-engine'
+ * import { verifyToken, stripQueryParams } from '@viverse/cf-engine/behaviors'
+ * import { defineViewerRequest } from '@viverse/cf-engine/adapters/lambda-edge'
+ *
+ * export const handler = defineViewerRequest([
+ *   rule(verifyToken({ key: process.env.EDGE_AUTH_KEY! })),
+ *   rule(stripQueryParams(['hdnts'])),
+ * ])
+ * ```
+ */
 export function defineViewerRequest(rules: Rule[]): (event: unknown) => unknown {
   return async (event) => {
     const ev = event as Record<string, unknown>
@@ -84,7 +111,32 @@ export function defineViewerRequest(rules: Rule[]): (event: unknown) => unknown 
   }
 }
 
-/** Creates a Lambda@Edge viewer response handler that applies response behaviors and returns a normalized CloudFront event response. */
+/**
+ * Creates a Lambda@Edge viewer-response handler from an ordered list of
+ * response behaviors or response rules.
+ *
+ * Each entry can be either:
+ * - A bare `ResponseBehaviorFn` — runs unconditionally on every response.
+ * - A `ResponseRule` `{ criteria, behavior }` — runs only when `criteria` returns `true`
+ *   for the current request.
+ *
+ * Header format normalization (Lambda@Edge ↔ cf-engine) is handled automatically.
+ *
+ * @param responseBehaviors - Ordered array of `ResponseBehaviorFn` functions or
+ *   `ResponseRule` objects `{ criteria?, behavior }`.
+ * @returns An async Lambda handler `async (event) => response`.
+ *
+ * @example
+ * ```ts
+ * import { setSecurityHeaders, setCorsHeaders } from '@viverse/cf-engine/behaviors'
+ * import { defineViewerResponse } from '@viverse/cf-engine/adapters/lambda-edge'
+ *
+ * export const handler = defineViewerResponse([
+ *   setSecurityHeaders(),
+ *   setCorsHeaders({ allowedOrigins: ['https://www.viverse.com'], allowOriginEcho: true }),
+ * ])
+ * ```
+ */
 export function defineViewerResponse(responseBehaviors: Array<ResponseBehaviorFn | ResponseRule>): (event: unknown) => unknown {
   return async (event) => {
     const ev = event as Record<string, unknown>

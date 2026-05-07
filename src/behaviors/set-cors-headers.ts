@@ -1,12 +1,44 @@
 import type { ResponseBehaviorFn, HttpRequest, HttpResponse } from '../core/types.js'
 
-/** CORS configuration options: allowed origins, methods, headers, credentials, and max age. */
+/**
+ * CORS configuration options for the `setCorsHeaders` behavior.
+ */
 export interface CorsOptions {
+  /**
+   * List of allowed origin patterns. Supports exact strings and wildcard `*` patterns
+   * (e.g. `'https://*.viverse.com'`). Use `['*']` to allow all origins.
+   * Default: `['*']`
+   */
   allowedOrigins?: string[]
+  /**
+   * When `true`, reflects the incoming `Origin` request header as the
+   * `Access-Control-Allow-Origin` response value, provided it matches one of
+   * `allowedOrigins`. Required when `allowCredentials` is `true` (browsers reject
+   * `Access-Control-Allow-Origin: *` with credentials).
+   * Default: `false`
+   */
   allowOriginEcho?: boolean
+  /**
+   * Value for the `Access-Control-Allow-Methods` header.
+   * Default: `'GET, POST, OPTIONS'`
+   */
   allowedMethods?: string
+  /**
+   * Value for the `Access-Control-Allow-Headers` header.
+   * Default: `'Content-Type, Cache-Control, Pragma, Range'`
+   */
   allowedHeaders?: string
+  /**
+   * When `true`, sets `Access-Control-Allow-Credentials: true`.
+   * Must be used together with `allowOriginEcho: true`; browsers reject
+   * wildcard origins when credentials are present.
+   * Default: `false`
+   */
   allowCredentials?: boolean
+  /**
+   * Preflight cache duration in seconds. Sets `Access-Control-Max-Age` when specified.
+   * Omit to exclude the header.
+   */
   maxAge?: number
 }
 
@@ -17,7 +49,36 @@ function matchesOriginPattern(origin: string, pattern: string): boolean {
   return new RegExp(`^${escaped}$`).test(origin)
 }
 
-/** Sets CORS headers on the response with configurable origin matching, methods, and credentials. */
+/**
+ * Sets CORS response headers with configurable origin matching, methods, headers,
+ * credentials, and preflight cache duration.
+ *
+ * Akamai equivalent: typically implemented via `modifyOutgoingResponseHeader` rules
+ * for each CORS header individually.
+ *
+ * @param options - CORS configuration. All fields are optional with safe defaults.
+ * @returns A `ResponseBehaviorFn` to use directly in `defineViewerResponse` or wrapped in a `ResponseRule`.
+ *
+ * @example
+ * ```ts
+ * import { setCorsHeaders } from '@viverse/cf-engine/behaviors'
+ * import { defineViewerResponse } from '@viverse/cf-engine/adapters/cf-function'
+ *
+ * // Allow all origins (default)
+ * export default defineViewerResponse([setCorsHeaders()])
+ *
+ * // Echo origin with credentials (e.g. for authenticated API endpoints)
+ * export default defineViewerResponse([
+ *   setCorsHeaders({
+ *     allowedOrigins: ['https://www.viverse.com', 'https://*.htc.com'],
+ *     allowOriginEcho: true,
+ *     allowCredentials: true,
+ *     allowedMethods: 'GET, POST, PUT, DELETE, OPTIONS',
+ *     maxAge: 86400,
+ *   }),
+ * ])
+ * ```
+ */
 export function setCorsHeaders(options?: CorsOptions): ResponseBehaviorFn {
   const allowedOrigins = options?.allowedOrigins ?? ['*']
   const allowedMethods = options?.allowedMethods ?? 'GET, POST, OPTIONS'
