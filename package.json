@@ -1,6 +1,6 @@
 {
   "name": "@viverse/cf-engine",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Composable, tree-shakeable CloudFront Function rules",
   "license": "MIT",
   "sideEffects": false,

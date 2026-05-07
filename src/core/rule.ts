@@ -26,6 +26,34 @@ export function not(fn: CriteriaFn): CriteriaFn {
   return (req) => !fn(req)
 }
 
+/**
+ * Chains multiple behavior functions sequentially, passing the mutated request
+ * from each behavior to the next. Stops immediately if any behavior returns
+ * `{ action: 'respond' }`.
+ *
+ * Use this when a single Akamai rule has multiple behaviors that must operate
+ * on the same (possibly mutated) request. Without chaining, splitting behaviors
+ * into separate `rule()` calls causes each to re-evaluate criteria against
+ * the original request — breaking cases where behavior 1 rewrites the URI
+ * and behavior 2 must see the rewritten path.
+ *
+ * @example
+ * ```ts
+ * rule(pathPrefix(['/api/']), chain([rewriteUri('/v2${uri}'), setRequestHeader('x-api-version', '2')]))
+ * ```
+ */
+export function chain(behaviors: BehaviorFn[]): BehaviorFn {
+  return (request) => {
+    let current = request
+    for (let i = 0; i < behaviors.length; i++) {
+      const result = behaviors[i](current)
+      if (result.action === 'respond') return result
+      current = result.request
+    }
+    return { action: 'continue', request: current }
+  }
+}
+
 /** Executes rules against a request in order, stopping at first response or completing all. */
 export function runRules(rules: Rule[], request: HttpRequest): BehaviorResult {
   for (let i = 0; i < rules.length; i++) {
