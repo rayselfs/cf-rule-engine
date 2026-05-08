@@ -115,6 +115,21 @@ rule(sendCountryCode())
 rule(sendCountryCode('x-custom-country'))
 ```
 
+### stagingIndicator
+
+Adds `x-cf-distribution: staging` to the response when the request carries `aws-cf-cd-staging: true`. Use in `viewer-response` configs shared between the primary and staging distributions so clients can confirm via DevTools or curl which distribution served the request.
+
+```typescript
+import { stagingIndicator } from '@viverse/cf-engine/helpers'
+
+defineViewerResponse([
+  setCorsHeaders({ allowedOrigins: ['https://www.viverse.com'] }),
+  stagingIndicator(),
+])
+```
+
+Primary distribution requests do not carry `aws-cf-cd-staging`, so the rule is a no-op there.
+
 ### viverseWhitelist
 
 Enforces IP and User-Agent allowlists for HTC internal access. Designed for stage environments — blocks unknown clients with a 302 redirect.
