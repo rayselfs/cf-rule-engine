@@ -17,21 +17,25 @@ Akamai property JSON → CLI analyze → CLI generate → cf-engine TypeScript �
 src/
   core/
     types.ts          # HttpRequest, HttpResponse, CriteriaFn, BehaviorFn, ResponseBehaviorFn, Rule
-    rule.ts           # rule(), all(), any(), not(), runRules()
+    rule.ts           # rule(), all(), any(), not(), chain(), runRules()
   shared/
     cidr.ts           # CIDR matching utilities
     wildcard.ts       # Wildcard pattern matching
   criteria/           # 11 criteria: pathPrefix, pathEquals, pathMatches, hostnameIs,
                       #   methodIs, ipCidr, headerEquals, headerContains,
                       #   fileExtension, countryIs, userAgentMatches
-  behaviors/          # 14 behaviors: redirect, rewriteUri, constructResponse,
+  behaviors/          # 15 behaviors: redirect, rewriteUri, constructResponse,
                       #   directoryIndex, setRequestHeader, copyHeader,
                       #   setResponseHeader, removeResponseHeaders, setCorsHeaders,
                       #   stripQueryParams, setCsp, setCacheControl, setSecurityHeaders,
-                      #   imageOptimize
+                      #   imageOptimize, verifyToken (Lambda@Edge only — needs Node.js crypto)
   adapters/
     cf-function.ts    # defineViewerRequest(), defineViewerResponse()
     lambda-edge.ts    # defineViewerRequest(), defineViewerResponse()
+  helpers/
+    viverse-whitelist.ts   # IP + UA allowlist for staging environments
+    send-country-code.ts   # Copy CloudFront-Viewer-Country to a request header
+    staging-indicator.ts   # Add x-cf-distribution: staging to response
 scripts/
   analyze-akamai.ts   # CLI: analyze Akamai JSON → report + split recommendation
   generate-rules.ts   # CLI: Akamai JSON → cf-engine TypeScript draft
@@ -42,6 +46,35 @@ tests/
 samples/
   stream-stage/       # Working consumer example
 ```
+
+---
+
+## WHERE TO LOOK
+
+| Task | Location |
+|------|----------|
+| Add/modify a criterion | `src/criteria/<name>.ts` → add to `src/criteria/index.ts` + `tsup.config.ts` → write `tests/criteria/<name>.test.ts` |
+| Add/modify a behavior | `src/behaviors/<name>.ts` → add to `src/behaviors/index.ts` + `tsup.config.ts` → write `tests/behaviors/<name>.test.ts` |
+| Add/modify a helper | `src/helpers/<name>.ts` → add to `src/helpers/index.ts` + `tsup.config.ts` → write `tests/helpers/<name>.test.ts` |
+| Chain multiple behaviors on one rule | `chain()` in `src/core/rule.ts` |
+| CF Function adapter (header format, body handling) | `src/adapters/cf-function.ts` |
+| Lambda@Edge adapter | `src/adapters/lambda-edge.ts` |
+| CLI: analyze Akamai property | `scripts/analyze-akamai.ts` |
+| CLI: generate cf-engine draft | `scripts/generate-rules.ts` |
+| Consumer example (CF Function) | `samples/viewer-request.ts`, `samples/viewer-response.ts` |
+| Consumer example (Lambda@Edge) | `samples/lambda-image-optimize.ts`, `samples/lambda-verify-token.ts` |
+| Migration workflow skill | `.agents/skills/akamai-migration/SKILL.md` |
+
+## COMMANDS
+
+```bash
+npm run build      # tsup → dist/ (CJS + ESM + .d.ts)
+npm test           # vitest run
+npm run typecheck  # tsc --noEmit
+```
+
+CI: Azure Pipelines (`azure-pipelines.yml`). Publishes to internal npm registry on `main` merge.
+Registry: `@viverse` scope → `https://vr-ops-internal-npm-registry.vrprod.viveport.com` (see `.npmrc`). Node 20 (`.nvmrc`).
 
 ---
 
@@ -236,6 +269,20 @@ Akamai's `userLocation` criterion uses EDGESCAPE data. In CF, country data comes
 
 ### 7. Image Manager — Akamai `imformat=chrome` means WebP
 The `imformat` query param maps: `chrome`/`webp` → WebP, `avif` → AVIF, `ie`/`safari`/`generic` → JPEG. The `imageOptimize` behavior handles this automatically.
+
+### 8. v1.1.0 Breaking Change — All Arguments Are Arrays
+All criteria and combinator functions take `string[]`, not variadic arguments:
+- `ipCidr(['a', 'b'])` not ~~`ipCidr('a', 'b')`~~
+- `all([fn1, fn2])` not ~~`all(fn1, fn2)`~~
+- `headerContains('x-foo', ['substr'])` — second arg is also an array
+
+Consumer code targeting v1.0.x must be updated before upgrading.
+
+### 9. `chain()` for Sequential Behaviors in One Rule
+`chain(behaviors: BehaviorFn[])` runs multiple behaviors sequentially on the **same** request within a single rule. Without `chain()`, each separate `rule()` re-evaluates criteria against the **original** request — breaking scenarios where behavior A modifies the URI/header before behavior B must see the updated value.
+
+### 10. viewer-response: Body Is Omitted by Default
+The CF Function adapter removes the `body` field from the viewer-response unless a behavior explicitly sets it. This prevents accidentally overwriting the origin's actual response body. Do not set `body` in viewer-response behaviors unless intentional.
 
 ---
 

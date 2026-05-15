@@ -18,16 +18,29 @@ npm install @viverse/cf-engine
 
 ## Quick Start
 
+**viewer-request** — IP blocking and method handling:
+
 ```typescript
-import { rule, all, not } from '@viverse/cf-engine'
-import { pathPrefix, ipCidr, methodIs } from '@viverse/cf-engine/criteria'
-import { redirect, constructResponse, setSecurityHeaders } from '@viverse/cf-engine/behaviors'
+import { rule, not } from '@viverse/cf-engine'
+import { ipCidr, methodIs } from '@viverse/cf-engine/criteria/index'
+import { redirect, constructResponse } from '@viverse/cf-engine/behaviors/index'
 import { defineViewerRequest } from '@viverse/cf-engine/adapters/cf-function'
 
 export default defineViewerRequest([
   rule(not(ipCidr(['10.0.0.0/8', '172.16.0.0/12'])), redirect(302, '/blocked')),
   rule(methodIs(['OPTIONS']), constructResponse({ statusCode: 200, body: 'ok' })),
-  rule(setSecurityHeaders()),
+])
+```
+
+**viewer-response** — security and CORS headers:
+
+```typescript
+import { setSecurityHeaders, setCorsHeaders } from '@viverse/cf-engine/behaviors/index'
+import { defineViewerResponse } from '@viverse/cf-engine/adapters/cf-function'
+
+export default defineViewerResponse([
+  setSecurityHeaders(),
+  setCorsHeaders({ allowedOrigins: ['https://www.viverse.com'] }),
 ])
 ```
 
@@ -52,8 +65,12 @@ rule(criteria?, behavior)   // with or without criteria guard
 
 all([criteriaA, criteriaB])   // AND
 any([criteriaA, criteriaB])   // OR
-not(criteria)               // NOT
+not(criteria)                 // NOT
+
+chain([behaviorA, behaviorB]) // sequential: B sees mutations made by A
 ```
+
+Use `chain()` when one behavior must see the request mutations (URI rewrite, header change) made by a previous behavior. Without `chain()`, each separate `rule()` re-evaluates criteria against the **original** unmodified request.
 
 **Adapters** normalize CloudFront's event format so the same rule definitions work across both runtimes:
 
@@ -75,12 +92,12 @@ not(criteria)               // NOT
 | `methodIs(methods)` | HTTP method matches any method in the array |
 | `fileExtension(exts)` | URI file extension matches any extension in the array |
 | `headerEquals(name, values)` | Request header equals any value in the array |
-| `headerContains(name, substring)` | Request header contains substring |
+| `headerContains(name, substrings)` | Request header contains any of the substrings (`string[]`) |
 | `ipCidr(cidrs)` | Client IP is within any CIDR range in the array |
 | `countryIs(codes)` | `CloudFront-Viewer-Country` matches any ISO code in the array |
 | `userAgentMatches(patterns)` | User-Agent matches any wildcard pattern in the array |
 
-### Behaviors (`@viverse/cf-engine/behaviors`)
+### Behaviors (`@viverse/cf-engine/behaviors/index`)
 
 | Function | CF Function | Lambda@Edge |
 |---|---|---|
@@ -100,7 +117,7 @@ not(criteria)               // NOT
 | `imageOptimize(options)` | ✅ | ✅ |
 | `verifyToken(options)` | ❌ | ✅ |
 
-## Helpers (`@viverse/cf-engine/helpers`)
+## Helpers (`@viverse/cf-engine/helpers/index`)
 
 Helpers are pre-configured rule factories that combine multiple criteria and behaviors for common use cases.
 
@@ -109,7 +126,7 @@ Helpers are pre-configured rule factories that combine multiple criteria and beh
 Copies the `CloudFront-Viewer-Country` header to a custom header (default: `x-htc-request-country-code`).
 
 ```typescript
-import { sendCountryCode } from '@viverse/cf-engine/helpers'
+import { sendCountryCode } from '@viverse/cf-engine/helpers/index'
 
 rule(sendCountryCode())
 rule(sendCountryCode('x-custom-country'))
@@ -120,7 +137,7 @@ rule(sendCountryCode('x-custom-country'))
 Adds `x-cf-distribution: staging` to the response when the request carries `aws-cf-cd-staging: true`. Use in `viewer-response` configs shared between the primary and staging distributions so clients can confirm via DevTools or curl which distribution served the request.
 
 ```typescript
-import { stagingIndicator } from '@viverse/cf-engine/helpers'
+import { stagingIndicator } from '@viverse/cf-engine/helpers/index'
 
 defineViewerResponse([
   setCorsHeaders({ allowedOrigins: ['https://www.viverse.com'] }),
@@ -139,7 +156,7 @@ Enforces IP and User-Agent allowlists for HTC internal access. Designed for stag
 - **User-Agents**: `*HTCVRSDET*`, `*Prerender*`, `*HTC3PARTY*`
 
 ```typescript
-import { viverseWhitelist } from '@viverse/cf-engine/helpers'
+import { viverseWhitelist } from '@viverse/cf-engine/helpers/index'
 
 viverseWhitelist({ redirectUrl: 'https://www.viverse.com' })
 
