@@ -15,8 +15,8 @@ func TestDefaultConfig(t *testing.T) {
 		t.Fatalf("Load() error = %v", err)
 	}
 
-	if cfg.ListenAddr != ":8080" {
-		t.Fatalf("ListenAddr = %q, want %q", cfg.ListenAddr, ":8080")
+	if cfg.ListenAddr != ":9999" {
+		t.Fatalf("ListenAddr = %q, want %q", cfg.ListenAddr, ":9999")
 	}
 	if cfg.ImgproxyURL != "http://localhost:8081" {
 		t.Fatalf("ImgproxyURL = %q, want %q", cfg.ImgproxyURL, "http://localhost:8081")
@@ -24,8 +24,8 @@ func TestDefaultConfig(t *testing.T) {
 	if cfg.S3Bucket != "source-images" {
 		t.Fatalf("S3Bucket = %q, want %q", cfg.S3Bucket, "source-images")
 	}
-	if cfg.S3Region != "us-east-1" {
-		t.Fatalf("S3Region = %q, want %q", cfg.S3Region, "us-east-1")
+	if cfg.S3Region != "us-west-2" {
+		t.Fatalf("S3Region = %q, want %q", cfg.S3Region, "us-west-2")
 	}
 	if cfg.UpstreamGateway != "istio-ingressgateway.istio-system.svc.cluster.local" {
 		t.Fatalf("UpstreamGateway = %q, want default gateway", cfg.UpstreamGateway)
