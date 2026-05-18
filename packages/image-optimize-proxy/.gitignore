@@ -1,0 +1,12 @@
+# Go build output — any binary in the package root
+/server
+/image-optimize-proxy
+/akamai-helper
+
+# Test coverage
+coverage.out
+coverage.html
+
+# Local env
+.env
+bin/*

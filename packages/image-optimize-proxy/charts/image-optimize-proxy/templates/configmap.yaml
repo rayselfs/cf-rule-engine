@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "image-optimize-proxy.fullname" . }}
+  labels:
+    {{- include "image-optimize-proxy.labels" . | nindent 4 }}
+data:
+  LISTEN_ADDR: {{ .Values.config.listenAddr | quote }}
+  IMGPROXY_URL: {{ .Values.config.imgproxyURL | quote }}
+  S3_BUCKET: {{ .Values.config.s3Bucket | quote }}
+  S3_REGION: {{ .Values.config.s3Region | quote }}
+  UPSTREAM_GATEWAY: {{ .Values.config.upstreamGateway | quote }}
+  MAX_WIDTH: {{ .Values.config.maxWidth | quote }}

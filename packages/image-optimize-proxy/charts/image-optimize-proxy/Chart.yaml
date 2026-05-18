@@ -1,0 +1,6 @@
+apiVersion: v2
+name: image-optimize-proxy
+description: Image optimization proxy with imgproxy sidecar
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

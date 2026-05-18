@@ -1,0 +1,54 @@
+replicaCount: 2
+
+image:
+  repository: image-optimize-proxy
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+imgproxy:
+  image:
+    repository: darthsim/imgproxy
+    tag: "latest"
+    pullPolicy: IfNotPresent
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+
+serviceAccount:
+  create: true
+  roleArn: ""  # IRSA placeholder
+
+service:
+  type: LoadBalancer
+  port: 80
+  targetPort: 8080
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: external
+    service.beta.kubernetes.io/aws-load-balancer-scheme: internal
+    service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: ip
+
+hpa:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+
+config:
+  listenAddr: ":8080"
+  imgproxyURL: "http://localhost:8081"
+  s3Bucket: ""
+  s3Region: "us-east-1"
+  upstreamGateway: "istio-ingressgateway.istio-system.svc.cluster.local"
+  maxWidth: "1920"
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
