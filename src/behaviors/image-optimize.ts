@@ -4,8 +4,9 @@ import type { BehaviorFn, HttpRequest } from '../core/types.js'
  * Options for imageOptimize querystring normalization behavior.
  *
  * This behavior normalizes Akamai Image Manager-compatible query parameters
- * for use with the `imgproxy-processing` Lambda@Edge at origin-request,
- * which handles HMAC signing and imgproxy URL construction.
+ * for use with the `image-optimize-proxy` K8s proxy at origin, which reads
+ * the normalized `imwidth`, `f`, and `q` params to drive imgproxy transformation
+ * and S3 caching.
  */
 export interface ImageOptimizeOptions {
   /** Ordered list of breakpoint widths (px). Request widths snap to the nearest ceiling breakpoint. */
@@ -121,22 +122,24 @@ export function resolveImageParams(
 
 /**
  * Normalizes image-related query string parameters for use with the
- * `imgproxy-processing` Lambda@Edge at origin-request.
+ * `image-optimize-proxy` K8s origin proxy.
  *
  * What this CF Function behavior does:
  *   - Snaps `imwidth` (or `CloudFront-Viewer-Width`) to the nearest ceiling breakpoint
- *   - Translates `imformat` (Akamai IM) to `f` param that `imgproxy-processing` Lambda reads
+ *   - Translates `imformat` (Akamai IM) to `f` param that `image-optimize-proxy` reads
  *   - Adds default `q` (quality) param if neither `q` nor `quality` is already set
  *   - Removes the `imformat` param after translation
- *   - Leaves `uri` unchanged — imgproxy URL construction is the Lambda's responsibility
+ *   - Leaves `uri` unchanged — imgproxy URL construction is the proxy's responsibility
  *
- * Architecture (required):
+ * Architecture:
  *   CF Function (viewer-request): imageOptimize — normalize querystring
- *   Lambda@Edge (origin-request): imgproxy-processing — HMAC sign + construct imgproxy URL
+ *   image-optimize-proxy (origin): reads imwidth/f/q, calls imgproxy sidecar, caches to S3
  *
  * Prerequisites:
  *   - CloudFront cache policy must include headers: Accept, CloudFront-Viewer-Width
- *   - `imgproxy-processing` Lambda@Edge must be attached at origin-request on the same behavior
+ *   - image-optimize-proxy must be the CF origin, with X-Img-Source-Type,
+ *     X-Img-Source-Bucket (for S3 sources), and X-Img-Upstream-Gateway set as
+ *     CloudFront origin custom headers in Terraform
  *
  * Akamai `imformat` mapping:
  *   chrome / webp → webp
