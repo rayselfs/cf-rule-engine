@@ -97,14 +97,14 @@ func TestIntegrationImageOptimizationFlow(t *testing.T) {
 	h := New(
 		s3Cache,
 		imgproxy.NewClient(imgproxyServer.URL),
-		upstream.NewResolver(strings.TrimPrefix(upstreamServer.URL, "http://")),
+		upstream.NewResolver(),
 		coalesce.New(),
 		1920,
 	)
 
-	assertRequest(t, h, "https://assets.example.com/images/hero.png?imwidth=640&f=webp&q=75", transformedImage, "image/webp", "MISS")
-	assertRequest(t, h, "https://assets.example.com/images/hero.png?imwidth=640&f=webp&q=75", transformedImage, "image/webp", "HIT")
-	assertRequest(t, h, "https://assets.example.com/images/hero.png", originalImage, "image/png", "")
+	assertRequest(t, h, "https://assets.example.com/images/hero.png?imwidth=640&f=webp&q=75", upstreamServer.URL, transformedImage, "image/webp", "MISS")
+	assertRequest(t, h, "https://assets.example.com/images/hero.png?imwidth=640&f=webp&q=75", upstreamServer.URL, transformedImage, "image/webp", "HIT")
+	assertRequest(t, h, "https://assets.example.com/images/hero.png", upstreamServer.URL, originalImage, "image/png", "")
 
 	if upstreamCalls != 2 {
 		t.Fatalf("upstream calls = %d, want 2", upstreamCalls)
@@ -114,10 +114,11 @@ func TestIntegrationImageOptimizationFlow(t *testing.T) {
 	}
 }
 
-func assertRequest(t *testing.T, h http.Handler, target, wantBody, wantContentType, wantXCache string) {
+func assertRequest(t *testing.T, h http.Handler, target, gatewayURL, wantBody, wantContentType, wantXCache string) {
 	t.Helper()
 
 	req := httptest.NewRequest(http.MethodGet, target, nil)
+	req.Header.Set("X-Img-Upstream-Gateway", gatewayURL)
 	w := httptest.NewRecorder()
 
 	h.ServeHTTP(w, req)

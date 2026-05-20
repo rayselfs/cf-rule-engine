@@ -8,21 +8,19 @@ import (
 )
 
 const (
-	defaultListenAddr      = ":9999"
-	defaultImgproxyURL     = "http://localhost:8081"
-	defaultS3Region        = "us-west-2"
-	defaultUpstreamGateway = "istio-ingressgateway.istio-system.svc.cluster.local"
-	defaultMaxWidth        = 1920
+	defaultListenAddr    = ":9999"
+	defaultImgproxyURL   = "http://localhost:8081"
+	defaultCacheS3Region = "us-west-2"
+	defaultMaxWidth      = 1920
 )
 
 // Config holds the service configuration loaded from environment variables.
 type Config struct {
-	ListenAddr      string
-	ImgproxyURL     string
-	S3Bucket        string
-	S3Region        string
-	UpstreamGateway string
-	MaxWidth        int
+	ListenAddr    string
+	ImgproxyURL   string
+	CacheS3Bucket string
+	CacheS3Region string
+	MaxWidth      int
 }
 
 // Load reads service configuration from environment variables.
@@ -33,16 +31,15 @@ func Load() (*Config, error) {
 	}
 
 	cfg := &Config{
-		ListenAddr:      envOrDefault("LISTEN_ADDR", defaultListenAddr),
-		ImgproxyURL:     envOrDefault("IMGPROXY_URL", defaultImgproxyURL),
-		S3Bucket:        strings.TrimSpace(os.Getenv("S3_BUCKET")),
-		S3Region:        envOrDefault("S3_REGION", defaultS3Region),
-		UpstreamGateway: envOrDefault("UPSTREAM_GATEWAY", defaultUpstreamGateway),
-		MaxWidth:        maxWidth,
+		ListenAddr:    envOrDefault("LISTEN_ADDR", defaultListenAddr),
+		ImgproxyURL:   envOrDefault("IMGPROXY_URL", defaultImgproxyURL),
+		CacheS3Bucket: strings.TrimSpace(os.Getenv("CACHE_S3_BUCKET")),
+		CacheS3Region: envOrDefault("CACHE_S3_REGION", defaultCacheS3Region),
+		MaxWidth:      maxWidth,
 	}
 
-	if cfg.S3Bucket == "" {
-		return nil, fmt.Errorf("S3_BUCKET is required")
+	if cfg.CacheS3Bucket == "" {
+		return nil, fmt.Errorf("CACHE_S3_BUCKET is required")
 	}
 
 	return cfg, nil

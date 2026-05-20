@@ -30,15 +30,15 @@ func main() {
 		os.Exit(1)
 	}
 
-	awsCfg, err := awsconfig.LoadDefaultConfig(context.Background(), awsconfig.WithRegion(cfg.S3Region))
+	awsCfg, err := awsconfig.LoadDefaultConfig(context.Background(), awsconfig.WithRegion(cfg.CacheS3Region))
 	if err != nil {
 		slog.Error("load aws config", "error", err)
 		os.Exit(1)
 	}
 
-	s3Cache := cache.NewS3Cache(s3.NewFromConfig(awsCfg), cfg.S3Bucket)
+	s3Cache := cache.NewS3Cache(s3.NewFromConfig(awsCfg), cfg.CacheS3Bucket)
 	imgproxyClient := imgproxy.NewClient(cfg.ImgproxyURL)
-	resolver := upstream.NewResolver(cfg.UpstreamGateway)
+	resolver := upstream.NewResolver()
 	coalescer := coalesce.New()
 	imageHandler := handler.New(s3Cache, imgproxyClient, resolver, coalescer, cfg.MaxWidth)
 

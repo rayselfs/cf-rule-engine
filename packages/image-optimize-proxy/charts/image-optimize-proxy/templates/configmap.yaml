@@ -6,8 +6,7 @@ metadata:
     {{- include "image-optimize-proxy.labels" . | nindent 4 }}
 data:
   LISTEN_ADDR: {{ .Values.config.listenAddr | quote }}
-  IMGPROXY_URL: {{ .Values.config.imgproxyURL | quote }}
-  S3_BUCKET: {{ .Values.config.s3Bucket | quote }}
-  S3_REGION: {{ .Values.config.s3Region | quote }}
-  UPSTREAM_GATEWAY: {{ .Values.config.upstreamGateway | quote }}
+  IMGPROXY_URL: "http://localhost:8081"
+  CACHE_S3_BUCKET: {{ .Values.config.cacheS3Bucket | quote }}
+  CACHE_S3_REGION: {{ .Values.config.cacheS3Region | quote }}
   MAX_WIDTH: {{ .Values.config.maxWidth | quote }}

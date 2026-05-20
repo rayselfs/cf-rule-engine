@@ -31,13 +31,11 @@ var newS3Presigner = func(ctx context.Context) (s3Presigner, error) {
 }
 
 // DefaultResolver resolves image sources from either S3 or the upstream gateway.
-type DefaultResolver struct {
-	gateway string
-}
+type DefaultResolver struct{}
 
 // NewResolver creates the default upstream resolver.
-func NewResolver(gateway string) *DefaultResolver {
-	return &DefaultResolver{gateway: strings.TrimPrefix(gateway, "http://")}
+func NewResolver() *DefaultResolver {
+	return &DefaultResolver{}
 }
 
 // Resolve returns the source URL that imgproxy should read and a fallback fetch function.
@@ -46,7 +44,12 @@ func (d *DefaultResolver) Resolve(r *http.Request) (string, func() (io.ReadClose
 		return d.resolveS3(r)
 	}
 
-	sourceURL := "http://" + d.gateway + requestURI(r)
+	gateway := strings.TrimPrefix(r.Header.Get("X-Img-Upstream-Gateway"), "http://")
+	if gateway == "" {
+		return "", nil, fmt.Errorf("X-Img-Upstream-Gateway header is required")
+	}
+
+	sourceURL := "http://" + gateway + requestURI(r)
 	fetchFunc := func() (io.ReadCloser, string, error) {
 		return fetchHTTP(r.Context(), sourceURL, r.Host)
 	}

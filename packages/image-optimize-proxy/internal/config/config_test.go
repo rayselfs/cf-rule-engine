@@ -5,9 +5,8 @@ import "testing"
 func TestDefaultConfig(t *testing.T) {
 	t.Setenv("LISTEN_ADDR", "")
 	t.Setenv("IMGPROXY_URL", "")
-	t.Setenv("S3_BUCKET", "source-images")
-	t.Setenv("S3_REGION", "")
-	t.Setenv("UPSTREAM_GATEWAY", "")
+	t.Setenv("CACHE_S3_BUCKET", "source-images")
+	t.Setenv("CACHE_S3_REGION", "")
 	t.Setenv("MAX_WIDTH", "")
 
 	cfg, err := Load()
@@ -21,22 +20,19 @@ func TestDefaultConfig(t *testing.T) {
 	if cfg.ImgproxyURL != "http://localhost:8081" {
 		t.Fatalf("ImgproxyURL = %q, want %q", cfg.ImgproxyURL, "http://localhost:8081")
 	}
-	if cfg.S3Bucket != "source-images" {
-		t.Fatalf("S3Bucket = %q, want %q", cfg.S3Bucket, "source-images")
+	if cfg.CacheS3Bucket != "source-images" {
+		t.Fatalf("CacheS3Bucket = %q, want %q", cfg.CacheS3Bucket, "source-images")
 	}
-	if cfg.S3Region != "us-west-2" {
-		t.Fatalf("S3Region = %q, want %q", cfg.S3Region, "us-west-2")
-	}
-	if cfg.UpstreamGateway != "istio-ingressgateway.istio-system.svc.cluster.local" {
-		t.Fatalf("UpstreamGateway = %q, want default gateway", cfg.UpstreamGateway)
+	if cfg.CacheS3Region != "us-west-2" {
+		t.Fatalf("CacheS3Region = %q, want %q", cfg.CacheS3Region, "us-west-2")
 	}
 	if cfg.MaxWidth != 1920 {
 		t.Fatalf("MaxWidth = %d, want %d", cfg.MaxWidth, 1920)
 	}
 }
 
-func TestRequiredS3Bucket(t *testing.T) {
-	t.Setenv("S3_BUCKET", "")
+func TestRequiredCacheS3Bucket(t *testing.T) {
+	t.Setenv("CACHE_S3_BUCKET", "")
 
 	if _, err := Load(); err == nil {
 		t.Fatal("Load() error = nil, want error")
@@ -46,9 +42,8 @@ func TestRequiredS3Bucket(t *testing.T) {
 func TestCustomConfig(t *testing.T) {
 	t.Setenv("LISTEN_ADDR", ":9090")
 	t.Setenv("IMGPROXY_URL", "http://imgproxy:8080")
-	t.Setenv("S3_BUCKET", "custom-bucket")
-	t.Setenv("S3_REGION", "ap-northeast-1")
-	t.Setenv("UPSTREAM_GATEWAY", "gateway.internal")
+	t.Setenv("CACHE_S3_BUCKET", "custom-bucket")
+	t.Setenv("CACHE_S3_REGION", "ap-northeast-1")
 	t.Setenv("MAX_WIDTH", "2048")
 
 	cfg, err := Load()
@@ -62,14 +57,11 @@ func TestCustomConfig(t *testing.T) {
 	if cfg.ImgproxyURL != "http://imgproxy:8080" {
 		t.Fatalf("ImgproxyURL = %q, want %q", cfg.ImgproxyURL, "http://imgproxy:8080")
 	}
-	if cfg.S3Bucket != "custom-bucket" {
-		t.Fatalf("S3Bucket = %q, want %q", cfg.S3Bucket, "custom-bucket")
+	if cfg.CacheS3Bucket != "custom-bucket" {
+		t.Fatalf("CacheS3Bucket = %q, want %q", cfg.CacheS3Bucket, "custom-bucket")
 	}
-	if cfg.S3Region != "ap-northeast-1" {
-		t.Fatalf("S3Region = %q, want %q", cfg.S3Region, "ap-northeast-1")
-	}
-	if cfg.UpstreamGateway != "gateway.internal" {
-		t.Fatalf("UpstreamGateway = %q, want %q", cfg.UpstreamGateway, "gateway.internal")
+	if cfg.CacheS3Region != "ap-northeast-1" {
+		t.Fatalf("CacheS3Region = %q, want %q", cfg.CacheS3Region, "ap-northeast-1")
 	}
 	if cfg.MaxWidth != 2048 {
 		t.Fatalf("MaxWidth = %d, want %d", cfg.MaxWidth, 2048)

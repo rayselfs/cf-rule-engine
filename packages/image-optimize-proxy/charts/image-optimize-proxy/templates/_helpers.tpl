@@ -58,3 +58,45 @@ ServiceAccount name.
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}
 {{- end }}
+
+{{/*
+Affinity: merges HA podAntiAffinity (when ha.enabled) with user-supplied .Values.affinity.
+Returns empty dict when neither ha.enabled nor .Values.affinity is set.
+*/}}
+{{- define "image-optimize-proxy.affinity" -}}
+{{- $default := dict }}
+{{- if .Values.ha.enabled }}
+  {{- $matchLabels := dict "app.kubernetes.io/name" (include "image-optimize-proxy.name" .) }}
+  {{- $topologyKey := "kubernetes.io/hostname" }}
+  {{- $antiAffinity := dict }}
+  {{- if .Values.ha.podAntiAffinity.required }}
+    {{- $_ := set $antiAffinity "requiredDuringSchedulingIgnoredDuringExecution" (list (dict
+        "labelSelector" (dict "matchLabels" $matchLabels)
+        "topologyKey" $topologyKey
+    )) }}
+  {{- else }}
+    {{- $_ := set $antiAffinity "preferredDuringSchedulingIgnoredDuringExecution" (list (dict
+        "weight" 100
+        "podAffinityTerm" (dict
+          "labelSelector" (dict "matchLabels" $matchLabels)
+          "topologyKey" $topologyKey
+        )
+    )) }}
+  {{- end }}
+  {{- $_ := set $default "podAntiAffinity" $antiAffinity }}
+{{- end }}
+{{- toYaml (merge $default .Values.affinity) }}
+{{- end }}
+
+{{/*
+topologySpreadConstraints: zone-level spread (maxSkew 1, ScheduleAnyway).
+Only rendered when .Values.ha.enabled is true.
+*/}}
+{{- define "image-optimize-proxy.topologySpreadConstraints" -}}
+- maxSkew: 1
+  topologyKey: topology.kubernetes.io/zone
+  whenUnsatisfiable: ScheduleAnyway
+  labelSelector:
+    matchLabels:
+      {{- include "image-optimize-proxy.selectorLabels" . | nindent 6 }}
+{{- end }}

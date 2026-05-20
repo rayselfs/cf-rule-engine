@@ -57,7 +57,7 @@ func TestResolveS3(t *testing.T) {
 	req.Header.Set("X-Img-Source-Type", "s3")
 	req.Header.Set("X-Img-Source-Bucket", "source-bucket")
 
-	sourceURL, fetchFunc, err := NewResolver("gateway.internal").Resolve(req)
+	sourceURL, fetchFunc, err := NewResolver().Resolve(req)
 	if err != nil {
 		t.Fatalf("Resolve() error = %v", err)
 	}
@@ -83,7 +83,7 @@ func TestResolveS3(t *testing.T) {
 	}
 }
 
-func TestResolveGateway(t *testing.T) {
+func TestResolveGatewayFromHeader(t *testing.T) {
 	var gotHost string
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		gotHost = r.Host
@@ -96,11 +96,11 @@ func TestResolveGateway(t *testing.T) {
 	}))
 	defer server.Close()
 
-	gateway := strings.TrimPrefix(server.URL, "http://")
 	req := httptest.NewRequest(http.MethodGet, "http://assets.example/images/cat.jpg?width=640", nil)
 	req.Host = "assets.example"
+	req.Header.Set("X-Img-Upstream-Gateway", server.URL)
 
-	sourceURL, fetchFunc, err := NewResolver(gateway).Resolve(req)
+	sourceURL, fetchFunc, err := NewResolver().Resolve(req)
 	if err != nil {
 		t.Fatalf("Resolve() error = %v", err)
 	}
@@ -126,5 +126,17 @@ func TestResolveGateway(t *testing.T) {
 	}
 	if string(data) != "gateway image" {
 		t.Fatalf("body = %q, want %q", string(data), "gateway image")
+	}
+}
+
+func TestResolveGatewayMissingHeader(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "http://assets.example/images/cat.jpg", nil)
+
+	_, _, err := NewResolver().Resolve(req)
+	if err == nil {
+		t.Fatal("Resolve() error = nil, want error for missing X-Img-Upstream-Gateway")
+	}
+	if !strings.Contains(err.Error(), "X-Img-Upstream-Gateway") {
+		t.Fatalf("error = %q, want message mentioning X-Img-Upstream-Gateway", err.Error())
 	}
 }

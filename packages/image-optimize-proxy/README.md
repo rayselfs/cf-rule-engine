@@ -20,12 +20,14 @@ See [`docs/architecture.md`](docs/architecture.md) for the full CloudFront ↔ p
 
 | Env var | Default | Description |
 |---|---|---|
-| `S3_BUCKET` | **required** | S3 bucket for cached transformed images |
-| `S3_REGION` | `us-east-1` | AWS region of the S3 bucket |
-| `IMGPROXY_URL` | `http://localhost:8081` | imgproxy sidecar address |
-| `UPSTREAM_GATEWAY` | `istio-ingressgateway.istio-system.svc.cluster.local` | Upstream origin gateway |
+| `CACHE_S3_BUCKET` | **required** | S3 bucket for cached transformed images |
+| `CACHE_S3_REGION` | `us-east-1` | AWS region of the S3 bucket |
 | `LISTEN_ADDR` | `:8080` | Proxy listen address |
 | `MAX_WIDTH` | `1920` | Maximum allowed image width in pixels |
+
+`IMGPROXY_URL` is hardcoded to `http://localhost:8081` in the Helm chart (imgproxy always runs as a sidecar).
+
+The upstream gateway is resolved at request time from the `X-Img-Upstream-Gateway` request header set by CloudFront. This header is **required** — requests without it are rejected with a 500.
 
 ## Development
 
@@ -42,10 +44,10 @@ Deployed via the included Helm chart. Runs alongside an imgproxy sidecar contain
 
 ```bash
 helm install image-optimize-proxy ./charts/image-optimize-proxy \
-  --set config.s3Bucket=viverse-image-optimize-cache-stage \
-  --set config.s3Region=us-west-2
+  --set config.cacheS3Bucket=viverse-image-optimize-cache-stage \
+  --set config.cacheS3Region=us-west-2
 ```
 
-Key Helm values: `config.s3Bucket`, `config.s3Region`, `image.repository`, `image.tag`. See [`charts/image-optimize-proxy/values.yaml`](charts/image-optimize-proxy/values.yaml) for the full reference.
+Key Helm values: `config.cacheS3Bucket`, `config.cacheS3Region`, `image.repository`, `image.tag`. See [`charts/image-optimize-proxy/values.yaml`](charts/image-optimize-proxy/values.yaml) for the full reference.
 
 The chart creates a dedicated internal NLB via `service.beta.kubernetes.io/aws-load-balancer-type: external` + `scheme: internal` annotations. IRSA is required for S3 access — configure the service account annotation separately.
