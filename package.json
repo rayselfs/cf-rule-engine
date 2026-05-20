@@ -1,6 +1,6 @@
 {
   "name": "@viverse/cf-engine",
-  "version": "1.3.0",
+  "version": "1.3.1",
   "description": "Composable, tree-shakeable CloudFront Function rules",
   "license": "MIT",
   "sideEffects": false,
@@ -33,6 +33,11 @@
       "types": "./dist/adapters/*.d.ts",
       "import": "./dist/adapters/*.js",
       "require": "./dist/adapters/*.cjs"
+    },
+    "./helpers": {
+      "types": "./dist/helpers/index.d.ts",
+      "import": "./dist/helpers/index.js",
+      "require": "./dist/helpers/index.cjs"
     },
     "./helpers/*": {
       "types": "./dist/helpers/*.d.ts",
