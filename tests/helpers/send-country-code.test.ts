@@ -11,12 +11,12 @@ const makeRequest = (headers: Record<string, { value: string }>) => ({
 })
 
 describe('sendCountryCode', () => {
-  it('copies CloudFront-Viewer-Country to x-htc-request-country-code by default', () => {
+  it('copies CloudFront-Viewer-Country to x-viewer-country by default', () => {
     const fn = sendCountryCode()
     const result = fn(makeRequest({ 'cloudfront-viewer-country': { value: 'TW' } }))
     expect(result.action).toBe('continue')
     if (result.action === 'continue') {
-      expect(result.request.headers['x-htc-request-country-code']).toEqual({ value: 'TW' })
+      expect(result.request.headers['x-viewer-country']).toEqual({ value: 'TW' })
     }
   })
 
@@ -42,7 +42,7 @@ describe('sendCountryCode', () => {
       const code = countryCodes[i]
       const result = fn(makeRequest({ 'cloudfront-viewer-country': { value: code } }))
       if (result.action === 'continue') {
-        expect(result.request.headers['x-htc-request-country-code'].value).toBe(code)
+        expect(result.request.headers['x-viewer-country'].value).toBe(code)
       }
     }
   })

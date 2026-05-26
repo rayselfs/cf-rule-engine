@@ -43,7 +43,7 @@ export default defineConfig({
     // helpers
     'src/helpers/index.ts',
     'src/helpers/send-country-code.ts',
-    'src/helpers/viverse-whitelist.ts',
+    'src/helpers/staging-whitelist.ts',
     'src/helpers/preflight-request.ts',
   ],
   format: ['cjs', 'esm'],

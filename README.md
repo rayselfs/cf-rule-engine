@@ -123,13 +123,13 @@ Helpers are pre-configured rule factories that combine multiple criteria and beh
 
 ### sendCountryCode
 
-Copies the `CloudFront-Viewer-Country` header to a custom header (default: `x-htc-request-country-code`).
+Copies the `CloudFront-Viewer-Country` header to a custom request header (default: `x-viewer-country`), making the viewer's country code available to the origin server.
 
 ```typescript
 import { sendCountryCode } from '@viverse/cf-engine/helpers/index'
 
-rule(sendCountryCode())
-rule(sendCountryCode('x-custom-country'))
+rule(sendCountryCode())                        // copies to x-viewer-country
+rule(sendCountryCode('x-custom-country'))      // copies to a custom header
 ```
 
 ### stagingIndicator
@@ -147,31 +147,33 @@ defineViewerResponse([
 
 Primary distribution requests do not carry `aws-cf-cd-staging`, so the rule is a no-op there.
 
-### viverseWhitelist
+### stagingWhitelist
 
-Enforces IP and User-Agent allowlists for HTC internal access. Designed for stage environments — blocks unknown clients with a 302 redirect.
+Restricts access to a staging environment by IP CIDR range and/or User-Agent pattern. Requests that don't match any allowed CIDR or User-Agent (and aren't on a bypassed path) are redirected with HTTP 302.
 
-**Default allowlists** (HTC internal):
-- **CIDRs**: HTC offices (61.218.44.76/32, 122.147.213.24/32, 60.251.61.121/32, 162.120.184.42/32), VPN (175.98.157.254/32, 122.147.173.254/32), stage VPCs (52.33.9.56/32, 52.35.160.39/32, 50.112.203.191/32)
-- **User-Agents**: `*HTCVRSDET*`, `*Prerender*`, `*HTC3PARTY*`
+No default allowlists are included — callers must supply all CIDRs and User-Agent patterns explicitly.
 
 ```typescript
-import { viverseWhitelist } from '@viverse/cf-engine/helpers/index'
+import { stagingWhitelist } from '@viverse/cf-engine/helpers/index'
 
-viverseWhitelist({ redirectUrl: 'https://www.viverse.com' })
+stagingWhitelist({
+  cidrs: ['203.0.113.0/24', '10.0.0.0/8'],
+  userAgents: ['*InternalBot*', '*Prerender*'],
+  redirectUrl: 'https://www.example.com',
+})
 
-viverseWhitelist({
-  redirectUrl: 'https://www.viverse.com',
-  additionalCidrs: ['198.51.100.0/24'],
-  additionalUAs: ['*CustomBot*'],
-  bypassPaths: ['/api/*', '/health'],
+// With bypass paths:
+stagingWhitelist({
+  cidrs: ['203.0.113.0/24'],
+  redirectUrl: 'https://www.example.com',
+  bypassPaths: ['/api/health', '/robots.txt'],
 })
 ```
 
 **Parameters:**
+- `cidrs` (required): CIDR ranges to allow (e.g. office IPs, VPN, stage VPCs)
+- `userAgents`: User-Agent wildcard patterns to allow (supports `*` and `?`)
 - `redirectUrl` (required): Where to redirect blocked requests
-- `additionalCidrs`: Project-specific CIDRs merged with defaults
-- `additionalUAs`: Project-specific user agents merged with defaults
 - `bypassPaths`: Paths exempt from whitelist checks (supports wildcards)
 
 ## CF Function vs Lambda@Edge

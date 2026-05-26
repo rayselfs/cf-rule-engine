@@ -33,8 +33,8 @@ src/
     cf-function.ts    # defineViewerRequest(), defineViewerResponse()
     lambda-edge.ts    # defineViewerRequest(), defineViewerResponse()
   helpers/
-    viverse-whitelist.ts   # IP + UA allowlist for staging environments
-    send-country-code.ts   # Copy CloudFront-Viewer-Country to a request header
+    staging-whitelist.ts  # Generic IP + UA allowlist for staging environments (no defaults)
+    send-country-code.ts   # Copy CloudFront-Viewer-Country to a request header (default: x-viewer-country)
     staging-indicator.ts   # Add x-cf-distribution: staging to response
 scripts/
   analyze-akamai.ts   # CLI: analyze Akamai JSON → report + split recommendation
@@ -73,7 +73,7 @@ npm test           # vitest run
 npm run typecheck  # tsc --noEmit
 ```
 
-CI: Azure Pipelines (`azure-pipelines.yml`). Publishes to internal npm registry on `main` merge.
+CI: Azure Pipelines (`azure-pipelines.yml`) publishes to internal npm registry on `main` merge. GitHub Actions (`.github/workflows/ci.yml`) runs typecheck + test + build on push/PR.
 Registry: `@viverse` scope → `https://vr-ops-internal-npm-registry.vrprod.viveport.com` (see `.npmrc`). Node 20 (`.nvmrc`).
 
 ---
