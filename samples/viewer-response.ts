@@ -2,15 +2,15 @@
  * stream-stage viewer-response handler
  *
  * Example CloudFront Function for the stream-stage.viverse.com domain.
- * Demonstrates CORS header configuration using @viverse/cf-engine.
+ * Demonstrates CORS header configuration using @rayselfs/cf-rule-engine.
  *
  * Build: esbuild viewer-response.ts --bundle --minify --target=es5 --platform=browser --format=iife --outfile=dist/viewer-response.js
  */
 
-import { all, hostnameIs } from '@viverse/cf-engine'
-import { pathMatches } from '@viverse/cf-engine/criteria/path-matches'
-import { setCorsHeaders } from '@viverse/cf-engine/behaviors/set-cors-headers'
-import { defineViewerResponse } from '@viverse/cf-engine/adapters/cf-function'
+import { all, hostnameIs } from '@rayselfs/cf-rule-engine'
+import { pathMatches } from '@rayselfs/cf-rule-engine/criteria/path-matches'
+import { setCorsHeaders } from '@rayselfs/cf-rule-engine/behaviors/set-cors-headers'
+import { defineViewerResponse } from '@rayselfs/cf-rule-engine/adapters/cf-function'
 
 // --- Configuration Values ---
 

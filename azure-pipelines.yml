@@ -70,6 +70,7 @@ stages:
 
           - script: |
               NPM_AUTH=$(echo -n "$(NPM_USER):$(NPM_PASS)" | base64)
+              echo "@rayselfs:registry=https://vr-ops-internal-npm-registry.vrprod.viveport.com" >> .npmrc
               echo "//vr-ops-internal-npm-registry.vrprod.viveport.com/:_auth=${NPM_AUTH}" >> .npmrc
               echo "//vr-ops-internal-npm-registry.vrprod.viveport.com/:always-auth=true" >> .npmrc
               npm publish

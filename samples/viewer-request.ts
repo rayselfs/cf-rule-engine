@@ -2,21 +2,21 @@
  * stream-stage viewer-request handler
  *
  * Example CloudFront Function for the stream-stage.viverse.com domain.
- * Demonstrates how to use @viverse/cf-engine for request-stage routing and filtering.
+ * Demonstrates how to use @rayselfs/cf-rule-engine for request-stage routing and filtering.
  *
  * Build: esbuild viewer-request.ts --bundle --minify --target=es5 --platform=browser --format=iife --outfile=dist/viewer-request.js
  */
 
-import { rule, all, not } from '@viverse/cf-engine'
-import { ipCidr } from '@viverse/cf-engine/criteria/ip-cidr'
-import { pathMatches } from '@viverse/cf-engine/criteria/path-matches'
-import { userAgentMatches } from '@viverse/cf-engine/criteria/user-agent-matches'
-import { methodIs } from '@viverse/cf-engine/criteria/method-is'
-import { redirect } from '@viverse/cf-engine/behaviors/redirect'
-import { rewriteUri } from '@viverse/cf-engine/behaviors/rewrite-uri'
-import { constructResponse } from '@viverse/cf-engine/behaviors/construct-response'
-import { copyHeader } from '@viverse/cf-engine/behaviors/copy-header'
-import { defineViewerRequest } from '@viverse/cf-engine/adapters/cf-function'
+import { rule, all, not } from '@rayselfs/cf-rule-engine'
+import { ipCidr } from '@rayselfs/cf-rule-engine/criteria/ip-cidr'
+import { pathMatches } from '@rayselfs/cf-rule-engine/criteria/path-matches'
+import { userAgentMatches } from '@rayselfs/cf-rule-engine/criteria/user-agent-matches'
+import { methodIs } from '@rayselfs/cf-rule-engine/criteria/method-is'
+import { redirect } from '@rayselfs/cf-rule-engine/behaviors/redirect'
+import { rewriteUri } from '@rayselfs/cf-rule-engine/behaviors/rewrite-uri'
+import { constructResponse } from '@rayselfs/cf-rule-engine/behaviors/construct-response'
+import { copyHeader } from '@rayselfs/cf-rule-engine/behaviors/copy-header'
+import { defineViewerRequest } from '@rayselfs/cf-rule-engine/adapters/cf-function'
 
 // --- Configuration Values ---
 // These would normally come from a values.ts file shared with infra code.

@@ -1,4 +1,4 @@
-# AGENTS.md — @viverse/cf-engine
+# AGENTS.md — @rayselfs/cf-rule-engine
 
 ## Purpose
 
@@ -255,8 +255,8 @@ Terraform reads `dist/*.js` at plan time. **Always commit built files** in the v
 - Lambda@Edge: `request.headers['x-foo'] = [{ key: 'X-Foo', value: 'bar' }]` (array)
 
 The adapters handle this automatically. Always use the correct adapter:
-- `import { defineViewerRequest } from '@viverse/cf-engine/adapters/cf-function'`
-- `import { defineViewerRequest } from '@viverse/cf-engine/adapters/lambda-edge'`
+- `import { defineViewerRequest } from '@rayselfs/cf-rule-engine/adapters/cf-function'`
+- `import { defineViewerRequest } from '@rayselfs/cf-rule-engine/adapters/lambda-edge'`
 
 ### 4. package.json exports — `types` Must Come First
 In package.json exports map, `types` condition must be declared before `import`/`require`, or esbuild will warn.

@@ -1,7 +1,7 @@
-import { rule, all } from '@viverse/cf-engine'
-import { pathPrefix } from '@viverse/cf-engine/criteria'
-import { verifyToken, stripQueryParams } from '@viverse/cf-engine/behaviors'
-import { defineViewerRequest } from '@viverse/cf-engine/adapters/lambda-edge'
+import { rule, all } from '@rayselfs/cf-rule-engine'
+import { pathPrefix } from '@rayselfs/cf-rule-engine/criteria'
+import { verifyToken, stripQueryParams } from '@rayselfs/cf-rule-engine/behaviors'
+import { defineViewerRequest } from '@rayselfs/cf-rule-engine/adapters/lambda-edge'
 
 // Akamai Edge Auth Token 2.0 — Lambda@Edge viewer-request
 //

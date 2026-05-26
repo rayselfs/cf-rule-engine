@@ -1,7 +1,7 @@
-import { rule, all } from '@viverse/cf-engine'
-import { fileExtension, pathPrefix } from '@viverse/cf-engine/criteria'
-import { imageOptimize } from '@viverse/cf-engine/behaviors'
-import { defineViewerRequest } from '@viverse/cf-engine/adapters/cf-function'
+import { rule, all } from '@rayselfs/cf-rule-engine'
+import { fileExtension, pathPrefix } from '@rayselfs/cf-rule-engine/criteria'
+import { imageOptimize } from '@rayselfs/cf-rule-engine/behaviors'
+import { defineViewerRequest } from '@rayselfs/cf-rule-engine/adapters/cf-function'
 
 // Image Manager — CF Function viewer-request (querystring normalizer)
 //

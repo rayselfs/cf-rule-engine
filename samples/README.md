@@ -1,6 +1,6 @@
 # Samples
 
-Real-world usage examples for `@viverse/cf-engine`.
+Real-world usage examples for `@rayselfs/cf-rule-engine`.
 
 ## CloudFront Functions
 

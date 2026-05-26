@@ -1,4 +1,4 @@
-# @viverse/cf-engine
+# @rayselfs/cf-rule-engine
 
 A composable, tree-shakeable rule engine for **AWS CloudFront Functions and Lambda@Edge**.
 
@@ -7,9 +7,7 @@ Define edge rules — redirects, CORS headers, IP allowlists, token auth, image 
 ## Installation
 
 ```bash
-# Requires internal registry for @viverse scope
-# .npmrc: @viverse:registry=https://vr-ops-internal-npm-registry.vrprod.viveport.com
-npm install @viverse/cf-engine
+npm install @rayselfs/cf-rule-engine
 ```
 
 ## Quick Start
@@ -17,10 +15,10 @@ npm install @viverse/cf-engine
 **viewer-request** — IP blocking and method handling:
 
 ```typescript
-import { rule, not } from '@viverse/cf-engine'
-import { ipCidr, methodIs } from '@viverse/cf-engine/criteria/index'
-import { redirect, constructResponse } from '@viverse/cf-engine/behaviors/index'
-import { defineViewerRequest } from '@viverse/cf-engine/adapters/cf-function'
+import { rule, not } from '@rayselfs/cf-rule-engine'
+import { ipCidr, methodIs } from '@rayselfs/cf-rule-engine/criteria/index'
+import { redirect, constructResponse } from '@rayselfs/cf-rule-engine/behaviors/index'
+import { defineViewerRequest } from '@rayselfs/cf-rule-engine/adapters/cf-function'
 
 export default defineViewerRequest([
   rule(not(ipCidr(['10.0.0.0/8', '172.16.0.0/12'])), redirect(302, '/blocked')),
@@ -31,8 +29,8 @@ export default defineViewerRequest([
 **viewer-response** — security and CORS headers:
 
 ```typescript
-import { setSecurityHeaders, setCorsHeaders } from '@viverse/cf-engine/behaviors/index'
-import { defineViewerResponse } from '@viverse/cf-engine/adapters/cf-function'
+import { setSecurityHeaders, setCorsHeaders } from '@rayselfs/cf-rule-engine/behaviors/index'
+import { defineViewerResponse } from '@rayselfs/cf-rule-engine/adapters/cf-function'
 
 export default defineViewerResponse([
   setSecurityHeaders(),
@@ -72,8 +70,8 @@ Use `chain()` when one behavior must see the request mutations (URI rewrite, hea
 
 | Adapter | Import | Use for |
 |---|---|---|
-| CF Function | `@viverse/cf-engine/adapters/cf-function` | `viewer-request`, `viewer-response` |
-| Lambda@Edge | `@viverse/cf-engine/adapters/lambda-edge` | `viewer-request`, `viewer-response` |
+| CF Function | `@rayselfs/cf-rule-engine/adapters/cf-function` | `viewer-request`, `viewer-response` |
+| Lambda@Edge | `@rayselfs/cf-rule-engine/adapters/lambda-edge` | `viewer-request`, `viewer-response` |
 
 ## Akamai → CloudFront Mapping
 
@@ -93,7 +91,7 @@ Use `chain()` when one behavior must see the request mutations (URI rewrite, hea
 | `countryIs(codes)` | `CloudFront-Viewer-Country` matches any ISO code in the array |
 | `userAgentMatches(patterns)` | User-Agent matches any wildcard pattern in the array |
 
-### Behaviors (`@viverse/cf-engine/behaviors/index`)
+### Behaviors (`@rayselfs/cf-rule-engine/behaviors/index`)
 
 | Function | CF Function | Lambda@Edge |
 |---|---|---|
@@ -113,7 +111,7 @@ Use `chain()` when one behavior must see the request mutations (URI rewrite, hea
 | `imageOptimize(options)` | ✅ | ✅ |
 | `verifyToken(options)` | ❌ | ✅ |
 
-## Helpers (`@viverse/cf-engine/helpers/index`)
+## Helpers (`@rayselfs/cf-rule-engine/helpers/index`)
 
 Helpers are pre-configured rule factories that combine multiple criteria and behaviors for common use cases.
 
@@ -122,7 +120,7 @@ Helpers are pre-configured rule factories that combine multiple criteria and beh
 Copies the `CloudFront-Viewer-Country` header to a custom request header (default: `x-viewer-country`), making the viewer's country code available to the origin server.
 
 ```typescript
-import { sendCountryCode } from '@viverse/cf-engine/helpers/index'
+import { sendCountryCode } from '@rayselfs/cf-rule-engine/helpers/index'
 
 rule(sendCountryCode())                        // copies to x-viewer-country
 rule(sendCountryCode('x-custom-country'))      // copies to a custom header
@@ -133,7 +131,7 @@ rule(sendCountryCode('x-custom-country'))      // copies to a custom header
 Adds `x-cf-distribution: staging` to the response when the request carries `aws-cf-cd-staging: true`. Use in `viewer-response` configs shared between the primary and staging distributions so clients can confirm via DevTools or curl which distribution served the request.
 
 ```typescript
-import { stagingIndicator } from '@viverse/cf-engine/helpers/index'
+import { stagingIndicator } from '@rayselfs/cf-rule-engine/helpers/index'
 
 defineViewerResponse([
   setCorsHeaders({ allowedOrigins: ['https://www.viverse.com'] }),
@@ -150,7 +148,7 @@ Restricts access to a staging environment by IP CIDR range and/or User-Agent pat
 No default allowlists are included — callers must supply all CIDRs and User-Agent patterns explicitly.
 
 ```typescript
-import { stagingWhitelist } from '@viverse/cf-engine/helpers/index'
+import { stagingWhitelist } from '@rayselfs/cf-rule-engine/helpers/index'
 
 stagingWhitelist({
   cidrs: ['203.0.113.0/24', '10.0.0.0/8'],
