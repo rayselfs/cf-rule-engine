@@ -1,12 +1,8 @@
 # @viverse/cf-engine
 
-A composable, tree-shakeable rule engine for migrating **Akamai CDN rules to AWS CloudFront Functions and Lambda@Edge**.
+A composable, tree-shakeable rule engine for **AWS CloudFront Functions and Lambda@Edge**.
 
-Akamai property rules (criteria + behaviors) map directly to cf-engine's `rule()` primitives. The same logic — redirects, CORS headers, IP allowlists, token auth, image optimization — runs at the CloudFront edge without an Akamai dependency.
-
-```
-Akamai property JSON → CLI analyze → CLI generate → cf-engine TypeScript → esbuild → dist/*.js → Terraform
-```
+Define edge rules — redirects, CORS headers, IP allowlists, token auth, image optimization — as plain TypeScript using an Akamai-inspired criteria + behaviors API. Rules are fully tree-shakeable and compile down to CloudFront-compatible JS.
 
 ## Installation
 
