@@ -9,6 +9,17 @@ trigger:
       - tsconfig.json
       - tsup.config.ts
 
+pr:
+  branches:
+    include:
+      - main
+  paths:
+    include:
+      - src/**
+      - package.json
+      - tsconfig.json
+      - tsup.config.ts
+
 pool:
   name: DevOps
 
@@ -18,6 +29,7 @@ variables:
 stages:
   - stage: CI
     displayName: Build & Test
+    condition: eq(variables['Build.Reason'], 'PullRequest')
     jobs:
       - job: Build
         displayName: Build, Typecheck & Test
@@ -38,8 +50,7 @@ stages:
 
   - stage: Publish
     displayName: Publish to Verdaccio
-    dependsOn: CI
-    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    condition: eq(variables['Build.SourceBranch'], 'refs/heads/main')
     jobs:
       - job: Publish
         displayName: npm publish
