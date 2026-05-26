@@ -13,6 +13,18 @@ export type ImageOriginConfig =
   | { type: 's3'; sourceBucket: string }
 
 /**
+ * Origin resolver — either a static config or a function that resolves
+ * the origin per-request. When a function is provided, it receives the
+ * normalized request and may return `undefined` to skip origin header injection.
+ *
+ * Use the function form for conditional routing (e.g., some paths → S3,
+ * others → gateway) within a single imageOptimize() call.
+ */
+export type ImageOriginResolver =
+  | ImageOriginConfig
+  | ((request: HttpRequest) => ImageOriginConfig | undefined)
+
+/**
  * Options for imageOptimize querystring normalization behavior.
  *
  * This behavior normalizes Akamai Image Manager-compatible query parameters
@@ -33,11 +45,14 @@ export interface ImageOptimizeOptions {
   imformatParam?: string
   /**
    * Origin configuration for image-optimize-proxy.
-   * When provided, injects the corresponding X-Img-* request headers so the
-   * proxy knows how to resolve the source image. This removes the need to
-   * configure CloudFront origin custom headers separately in Terraform.
-   */
-  origin?: ImageOriginConfig
+    * When provided, injects the corresponding X-Img-* request headers so the
+    * proxy knows how to resolve the source image. This removes the need to
+    * configure CloudFront origin custom headers separately in Terraform.
+    *
+    * Accepts either a static config object or a resolver function that receives
+    * the request and returns the appropriate origin (or undefined to skip).
+    */
+  origin?: ImageOriginResolver
   /**
    * CloudFront origin verification secret.
    * When provided, injects the value as the X-Origin-Verify request header.
@@ -196,12 +211,13 @@ export function imageOptimize(options: ImageOptimizeOptions): BehaviorFn {
 
     var headers = Object.assign({}, request.headers)
 
-    if (options.origin !== undefined) {
-      headers['x-img-source-type'] = { value: options.origin.type }
-      if (options.origin.type === 'gateway') {
-        headers['x-img-upstream-gateway'] = { value: options.origin.upstreamGateway }
+    var resolvedOrigin = typeof options.origin === 'function' ? options.origin(request) : options.origin
+    if (resolvedOrigin !== undefined) {
+      headers['x-img-source-type'] = { value: resolvedOrigin.type }
+      if (resolvedOrigin.type === 'gateway') {
+        headers['x-img-upstream-gateway'] = { value: resolvedOrigin.upstreamGateway }
       } else {
-        headers['x-img-source-bucket'] = { value: options.origin.sourceBucket }
+        headers['x-img-source-bucket'] = { value: resolvedOrigin.sourceBucket }
       }
     }
 

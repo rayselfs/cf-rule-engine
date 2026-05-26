@@ -235,4 +235,65 @@ describe('imageOptimize', () => {
       expect(result.request.headers['x-origin-verify']).toBeUndefined()
     }
   })
+
+  it('resolves origin from function returning gateway config', () => {
+    const fn = imageOptimize({
+      ...defaultOptions,
+      origin: () => ({ type: 'gateway', upstreamGateway: 'istio-gw.internal:8080' }),
+    })
+    const result = fn(makeRequest('/img.jpg'))
+    if (result.action === 'continue') {
+      expect(result.request.headers['x-img-source-type']?.value).toBe('gateway')
+      expect(result.request.headers['x-img-upstream-gateway']?.value).toBe('istio-gw.internal:8080')
+      expect(result.request.headers['x-img-source-bucket']).toBeUndefined()
+    }
+  })
+
+  it('resolves origin from function returning s3 config', () => {
+    const fn = imageOptimize({
+      ...defaultOptions,
+      origin: () => ({ type: 's3', sourceBucket: 'dynamic-bucket' }),
+    })
+    const result = fn(makeRequest('/img.jpg'))
+    if (result.action === 'continue') {
+      expect(result.request.headers['x-img-source-type']?.value).toBe('s3')
+      expect(result.request.headers['x-img-source-bucket']?.value).toBe('dynamic-bucket')
+      expect(result.request.headers['x-img-upstream-gateway']).toBeUndefined()
+    }
+  })
+
+  it('does not inject origin headers when function returns undefined', () => {
+    const fn = imageOptimize({
+      ...defaultOptions,
+      origin: () => undefined,
+    })
+    const result = fn(makeRequest('/img.jpg'))
+    if (result.action === 'continue') {
+      expect(result.request.headers['x-img-source-type']).toBeUndefined()
+      expect(result.request.headers['x-img-upstream-gateway']).toBeUndefined()
+      expect(result.request.headers['x-img-source-bucket']).toBeUndefined()
+    }
+  })
+
+  it('conditionally resolves origin based on request URI', () => {
+    const fn = imageOptimize({
+      ...defaultOptions,
+      origin: (req) =>
+        req.uri.startsWith('/static/')
+          ? { type: 's3', sourceBucket: 'static-assets' }
+          : { type: 'gateway', upstreamGateway: 'istio-gw.internal' },
+    })
+
+    const s3Result = fn(makeRequest('/static/logo.png'))
+    if (s3Result.action === 'continue') {
+      expect(s3Result.request.headers['x-img-source-type']?.value).toBe('s3')
+      expect(s3Result.request.headers['x-img-source-bucket']?.value).toBe('static-assets')
+    }
+
+    const gwResult = fn(makeRequest('/api/avatar.jpg'))
+    if (gwResult.action === 'continue') {
+      expect(gwResult.request.headers['x-img-source-type']?.value).toBe('gateway')
+      expect(gwResult.request.headers['x-img-upstream-gateway']?.value).toBe('istio-gw.internal')
+    }
+  })
 })

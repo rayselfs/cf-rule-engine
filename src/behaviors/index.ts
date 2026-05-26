@@ -31,7 +31,7 @@ export { setSecurityHeaders } from './set-security-headers.js'
 export type { SecurityHeadersOptions } from './set-security-headers.js'
 
 export { imageOptimize } from './image-optimize.js'
-export type { ImageOptimizeOptions } from './image-optimize.js'
+export type { ImageOptimizeOptions, ImageOriginConfig, ImageOriginResolver } from './image-optimize.js'
 
 export { verifyToken } from './verify-token.js'
 export type { VerifyTokenOptions } from './verify-token.js'
