@@ -1,6 +1,18 @@
 import type { BehaviorFn, HttpRequest } from '../core/types.js'
 
 /**
+ * Origin configuration for image-optimize-proxy.
+ *
+ * Determines which request headers are injected so the proxy knows where to
+ * fetch the source image:
+ *   - gateway: injects X-Img-Source-Type=gateway and X-Img-Upstream-Gateway
+ *   - s3:      injects X-Img-Source-Type=s3 and X-Img-Source-Bucket
+ */
+export type ImageOriginConfig =
+  | { type: 'gateway'; upstreamGateway: string }
+  | { type: 's3'; sourceBucket: string }
+
+/**
  * Options for imageOptimize querystring normalization behavior.
  *
  * This behavior normalizes Akamai Image Manager-compatible query parameters
@@ -19,6 +31,19 @@ export interface ImageOptimizeOptions {
   imwidthParam?: string
   /** Query string param name for format override (Akamai IM compatible). Default: 'imformat' */
   imformatParam?: string
+  /**
+   * Origin configuration for image-optimize-proxy.
+   * When provided, injects the corresponding X-Img-* request headers so the
+   * proxy knows how to resolve the source image. This removes the need to
+   * configure CloudFront origin custom headers separately in Terraform.
+   */
+  origin?: ImageOriginConfig
+  /**
+   * CloudFront origin verification secret.
+   * When provided, injects the value as the X-Origin-Verify request header.
+   * The proxy validates this header to ensure requests originate from CloudFront.
+   */
+  originSecret?: string
 }
 
 /** Resolved normalized image parameters. */
@@ -122,24 +147,23 @@ export function resolveImageParams(
 
 /**
  * Normalizes image-related query string parameters for use with the
- * `image-optimize-proxy` K8s origin proxy.
+ * `image-optimize-proxy` K8s origin proxy, and optionally injects the
+ * origin routing headers so the proxy knows where to fetch source images.
  *
  * What this CF Function behavior does:
  *   - Snaps `imwidth` (or `CloudFront-Viewer-Width`) to the nearest ceiling breakpoint
  *   - Translates `imformat` (Akamai IM) to `f` param that `image-optimize-proxy` reads
- *   - Adds default `q` (quality) param if neither `q` nor `quality` is already set
+ *   - Converts legacy `quality` param to `q` and removes `quality` from querystring
+ *   - Adds default `q` (quality) param if not already set
  *   - Removes the `imformat` param after translation
  *   - Leaves `uri` unchanged — imgproxy URL construction is the proxy's responsibility
+ *   - When `origin` is set, injects X-Img-Source-Type and X-Img-Upstream-Gateway
+ *     or X-Img-Source-Bucket headers (eliminates need for Terraform origin custom headers)
+ *   - When `originSecret` is set, injects X-Origin-Verify header
  *
  * Architecture:
- *   CF Function (viewer-request): imageOptimize — normalize querystring
- *   image-optimize-proxy (origin): reads imwidth/f/q, calls imgproxy sidecar, caches to S3
- *
- * Prerequisites:
- *   - CloudFront cache policy must include headers: Accept, CloudFront-Viewer-Width
- *   - image-optimize-proxy must be the CF origin, with X-Img-Source-Type,
- *     X-Img-Source-Bucket (for S3 sources), and X-Img-Upstream-Gateway set as
- *     CloudFront origin custom headers in Terraform
+ *   CF Function (viewer-request): imageOptimize — normalize querystring + inject origin headers
+ *   image-optimize-proxy (origin): reads imwidth/f/q + X-Img-* headers, calls imgproxy sidecar, caches to S3
  *
  * Akamai `imformat` mapping:
  *   chrome / webp → webp
@@ -157,15 +181,34 @@ export function imageOptimize(options: ImageOptimizeOptions): BehaviorFn {
     qs['imwidth'] = { value: String(resolved.breakpoint) }
     qs['f'] = { value: resolved.format }
 
-    if (qs['q'] === undefined && qs['quality'] === undefined) {
-      qs['q'] = { value: String(resolved.quality) }
+    // Convert legacy `quality` param to `q`. Proxy only reads `q`; leaving
+    // `quality` in the querystring would cause it to be silently ignored.
+    if (qs['q'] === undefined) {
+      var legacyQuality = qs['quality'] !== undefined ? qs['quality'].value : undefined
+      qs['q'] = { value: legacyQuality !== undefined ? legacyQuality : String(resolved.quality) }
     }
+    delete qs['quality']
 
     delete qs[imformatParamName]
     if (imformatParamName !== 'imformat') {
       delete qs['imformat']
     }
 
-    return { action: 'continue', request: Object.assign({}, request, { querystring: qs }) }
+    var headers = Object.assign({}, request.headers)
+
+    if (options.origin !== undefined) {
+      headers['x-img-source-type'] = { value: options.origin.type }
+      if (options.origin.type === 'gateway') {
+        headers['x-img-upstream-gateway'] = { value: options.origin.upstreamGateway }
+      } else {
+        headers['x-img-source-bucket'] = { value: options.origin.sourceBucket }
+      }
+    }
+
+    if (options.originSecret !== undefined) {
+      headers['x-origin-verify'] = { value: options.originSecret }
+    }
+
+    return { action: 'continue', request: Object.assign({}, request, { querystring: qs, headers: headers }) }
   }
 }

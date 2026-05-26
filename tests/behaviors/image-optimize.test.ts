@@ -157,12 +157,12 @@ describe('imageOptimize', () => {
     }
   })
 
-  it('does not overwrite quality param if already set', () => {
+  it('converts legacy quality param to q and removes quality from querystring', () => {
     const fn = imageOptimize(defaultOptions)
     const result = fn(makeRequest('/img.jpg', {}, { quality: { value: '60' } }))
     if (result.action === 'continue') {
-      expect(result.request.querystring['quality']?.value).toBe('60')
-      expect(result.request.querystring['q']).toBeUndefined()
+      expect(result.request.querystring['q']?.value).toBe('60')
+      expect(result.request.querystring['quality']).toBeUndefined()
     }
   })
 
@@ -181,6 +181,58 @@ describe('imageOptimize', () => {
     const result = fn(makeRequest('/img.jpg', {}, { w: { value: '400' } }))
     if (result.action === 'continue') {
       expect(result.request.querystring['imwidth']?.value).toBe('640')
+    }
+  })
+
+  it('injects x-img-source-type and x-img-upstream-gateway for gateway origin', () => {
+    const fn = imageOptimize({
+      ...defaultOptions,
+      origin: { type: 'gateway', upstreamGateway: 'image-proxy.internal.example.com:8080' },
+    })
+    const result = fn(makeRequest('/img.jpg'))
+    if (result.action === 'continue') {
+      expect(result.request.headers['x-img-source-type']?.value).toBe('gateway')
+      expect(result.request.headers['x-img-upstream-gateway']?.value).toBe('image-proxy.internal.example.com:8080')
+      expect(result.request.headers['x-img-source-bucket']).toBeUndefined()
+    }
+  })
+
+  it('injects x-img-source-type and x-img-source-bucket for s3 origin', () => {
+    const fn = imageOptimize({
+      ...defaultOptions,
+      origin: { type: 's3', sourceBucket: 'my-images-bucket' },
+    })
+    const result = fn(makeRequest('/img.jpg'))
+    if (result.action === 'continue') {
+      expect(result.request.headers['x-img-source-type']?.value).toBe('s3')
+      expect(result.request.headers['x-img-source-bucket']?.value).toBe('my-images-bucket')
+      expect(result.request.headers['x-img-upstream-gateway']).toBeUndefined()
+    }
+  })
+
+  it('does not inject origin headers when origin option is omitted', () => {
+    const fn = imageOptimize(defaultOptions)
+    const result = fn(makeRequest('/img.jpg'))
+    if (result.action === 'continue') {
+      expect(result.request.headers['x-img-source-type']).toBeUndefined()
+      expect(result.request.headers['x-img-upstream-gateway']).toBeUndefined()
+      expect(result.request.headers['x-img-source-bucket']).toBeUndefined()
+    }
+  })
+
+  it('injects x-origin-verify header when originSecret is provided', () => {
+    const fn = imageOptimize({ ...defaultOptions, originSecret: 'my-secret-token' })
+    const result = fn(makeRequest('/img.jpg'))
+    if (result.action === 'continue') {
+      expect(result.request.headers['x-origin-verify']?.value).toBe('my-secret-token')
+    }
+  })
+
+  it('does not inject x-origin-verify header when originSecret is omitted', () => {
+    const fn = imageOptimize(defaultOptions)
+    const result = fn(makeRequest('/img.jpg'))
+    if (result.action === 'continue') {
+      expect(result.request.headers['x-origin-verify']).toBeUndefined()
     }
   })
 })
