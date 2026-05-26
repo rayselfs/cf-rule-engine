@@ -61,21 +61,17 @@ stages:
               echo "//vr-ops-internal-npm-registry.vrprod.viveport.com/:_auth=${NPM_AUTH}" >> .npmrc
               echo "//vr-ops-internal-npm-registry.vrprod.viveport.com/:always-auth=true" >> .npmrc
 
-              PACKAGE_NAME=$(node -p "require('./package.json').name")
-              LOCAL_VERSION=$(node -p "require('./package.json').version")
-              REMOTE_VERSION=$(npm view "${PACKAGE_NAME}" version 2>/dev/null || echo "0.0.0")
-              if [ "${LOCAL_VERSION}" = "${REMOTE_VERSION}" ]; then
-                echo "##[warning]Version ${LOCAL_VERSION} already published. Skipping."
-                echo "##vso[task.setvariable variable=skipPublish]true"
-              else
-                echo "Publishing ${PACKAGE_NAME}@${LOCAL_VERSION} (registry has ${REMOTE_VERSION})"
-                echo "##vso[task.setvariable variable=skipPublish]false"
+              OUTPUT=$(npm publish 2>&1)
+              EXIT_CODE=$?
+              echo "${OUTPUT}"
+              if [ ${EXIT_CODE} -ne 0 ]; then
+                echo "${OUTPUT}" | grep -qE "E409|already present" && {
+                  echo "##[warning]Version already published to Verdaccio, skipping."
+                  exit 0
+                }
+                exit ${EXIT_CODE}
               fi
-            displayName: Configure registry and check version
+            displayName: Publish to Verdaccio
             env:
               NPM_USER: $(NPM_USER)
               NPM_PASS: $(NPM_PASS)
-
-          - script: npm publish
-            displayName: Publish to Verdaccio
-            condition: ne(variables['skipPublish'], 'true')
