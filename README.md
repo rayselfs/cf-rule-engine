@@ -141,23 +141,23 @@ defineViewerResponse([
 
 Primary distribution requests do not carry `aws-cf-cd-staging`, so the rule is a no-op there.
 
-### stagingWhitelist
+### whitelist
 
-Restricts access to a staging environment by IP CIDR range and/or User-Agent pattern. Requests that don't match any allowed CIDR or User-Agent (and aren't on a bypassed path) are redirected with HTTP 302.
+Restricts access by IP CIDR range and/or User-Agent pattern. Requests that don't match any allowed CIDR or User-Agent (and aren't on a bypassed path) are redirected with HTTP 302.
 
 No default allowlists are included — callers must supply all CIDRs and User-Agent patterns explicitly.
 
 ```typescript
-import { stagingWhitelist } from '@rayselfs/cf-rule-engine/helpers/index'
+import { whitelist } from '@rayselfs/cf-rule-engine/helpers/index'
 
-stagingWhitelist({
+whitelist({
   cidrs: ['203.0.113.0/24', '10.0.0.0/8'],
   userAgents: ['*InternalBot*', '*Prerender*'],
   redirectUrl: 'https://www.example.com',
 })
 
 // With bypass paths:
-stagingWhitelist({
+whitelist({
   cidrs: ['203.0.113.0/24'],
   redirectUrl: 'https://www.example.com',
   bypassPaths: ['/api/health', '/robots.txt'],

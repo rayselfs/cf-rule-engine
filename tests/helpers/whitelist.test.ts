@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { stagingWhitelist } from '../../src/helpers/staging-whitelist.js'
+import { whitelist } from '../../src/helpers/whitelist.js'
 import { runRules } from '../../src/core/rule.js'
 
 const ALLOWED_CIDRS = ['203.0.113.0/24', '10.0.0.0/8']
@@ -18,20 +18,20 @@ const makeRequest = (
   clientIp,
 })
 
-describe('stagingWhitelist', () => {
+describe('whitelist', () => {
   describe('cidrs', () => {
     it('allows IP within a specified CIDR', () => {
-      const r = stagingWhitelist({ cidrs: ALLOWED_CIDRS, redirectUrl: '/blocked' })
+      const r = whitelist({ cidrs: ALLOWED_CIDRS, redirectUrl: '/blocked' })
       expect(runRules([r], makeRequest('/', '203.0.113.10')).action).toBe('continue')
     })
 
     it('allows IP in second CIDR range', () => {
-      const r = stagingWhitelist({ cidrs: ALLOWED_CIDRS, redirectUrl: '/blocked' })
+      const r = whitelist({ cidrs: ALLOWED_CIDRS, redirectUrl: '/blocked' })
       expect(runRules([r], makeRequest('/', '10.1.2.3')).action).toBe('continue')
     })
 
     it('blocks IP not in any CIDR (no UAs configured)', () => {
-      const r = stagingWhitelist({ cidrs: ALLOWED_CIDRS, redirectUrl: 'https://example.com' })
+      const r = whitelist({ cidrs: ALLOWED_CIDRS, redirectUrl: 'https://example.com' })
       const result = runRules([r], makeRequest('/', '1.2.3.4'))
       expect(result.action).toBe('respond')
       if (result.action === 'respond') {
@@ -43,7 +43,7 @@ describe('stagingWhitelist', () => {
 
   describe('userAgents', () => {
     it('allows UA matching a wildcard pattern', () => {
-      const r = stagingWhitelist({ cidrs: [], userAgents: ALLOWED_UAS, redirectUrl: '/blocked' })
+      const r = whitelist({ cidrs: [], userAgents: ALLOWED_UAS, redirectUrl: '/blocked' })
       const result = runRules(
         [r],
         makeRequest('/', '1.2.3.4', { 'user-agent': { value: 'InternalBot/2.0' } })
@@ -52,7 +52,7 @@ describe('stagingWhitelist', () => {
     })
 
     it('allows UA matching Prerender pattern', () => {
-      const r = stagingWhitelist({ cidrs: [], userAgents: ALLOWED_UAS, redirectUrl: '/blocked' })
+      const r = whitelist({ cidrs: [], userAgents: ALLOWED_UAS, redirectUrl: '/blocked' })
       const result = runRules(
         [r],
         makeRequest('/', '1.2.3.4', { 'user-agent': { value: 'Mozilla/5.0 Prerender' } })
@@ -61,7 +61,7 @@ describe('stagingWhitelist', () => {
     })
 
     it('blocks unknown UA when IP is also not in CIDR', () => {
-      const r = stagingWhitelist({
+      const r = whitelist({
         cidrs: ALLOWED_CIDRS,
         userAgents: ALLOWED_UAS,
         redirectUrl: '/blocked',
@@ -74,14 +74,14 @@ describe('stagingWhitelist', () => {
     })
 
     it('allows when userAgents is omitted and IP matches', () => {
-      const r = stagingWhitelist({ cidrs: ALLOWED_CIDRS, redirectUrl: '/blocked' })
+      const r = whitelist({ cidrs: ALLOWED_CIDRS, redirectUrl: '/blocked' })
       expect(runRules([r], makeRequest('/', '203.0.113.1')).action).toBe('continue')
     })
   })
 
   describe('bypassPaths', () => {
     it('bypasses whitelist for specified exact path', () => {
-      const r = stagingWhitelist({
+      const r = whitelist({
         cidrs: ALLOWED_CIDRS,
         redirectUrl: '/blocked',
         bypassPaths: ['/health'],
@@ -90,7 +90,7 @@ describe('stagingWhitelist', () => {
     })
 
     it('bypasses whitelist for wildcard path', () => {
-      const r = stagingWhitelist({
+      const r = whitelist({
         cidrs: ALLOWED_CIDRS,
         redirectUrl: '/blocked',
         bypassPaths: ['/api/*'],
@@ -100,7 +100,7 @@ describe('stagingWhitelist', () => {
     })
 
     it('does not bypass non-matching paths', () => {
-      const r = stagingWhitelist({
+      const r = whitelist({
         cidrs: ALLOWED_CIDRS,
         redirectUrl: '/blocked',
         bypassPaths: ['/health'],
@@ -111,7 +111,7 @@ describe('stagingWhitelist', () => {
 
   describe('combined IP + UA', () => {
     it('allows when IP matches even if UA does not', () => {
-      const r = stagingWhitelist({
+      const r = whitelist({
         cidrs: ALLOWED_CIDRS,
         userAgents: ALLOWED_UAS,
         redirectUrl: '/blocked',
@@ -124,7 +124,7 @@ describe('stagingWhitelist', () => {
     })
 
     it('allows when UA matches even if IP does not', () => {
-      const r = stagingWhitelist({
+      const r = whitelist({
         cidrs: ALLOWED_CIDRS,
         userAgents: ALLOWED_UAS,
         redirectUrl: '/blocked',
@@ -137,7 +137,7 @@ describe('stagingWhitelist', () => {
     })
 
     it('bypass path overrides IP+UA checks', () => {
-      const r = stagingWhitelist({
+      const r = whitelist({
         cidrs: ALLOWED_CIDRS,
         userAgents: ALLOWED_UAS,
         redirectUrl: '/blocked',
@@ -153,7 +153,7 @@ describe('stagingWhitelist', () => {
 
   describe('redirect behavior', () => {
     it('redirects with 302 to the specified URL', () => {
-      const r = stagingWhitelist({ cidrs: [], redirectUrl: 'https://example.com/blocked' })
+      const r = whitelist({ cidrs: [], redirectUrl: 'https://example.com/blocked' })
       const result = runRules([r], makeRequest('/', '1.2.3.4'))
       expect(result.action).toBe('respond')
       if (result.action === 'respond') {

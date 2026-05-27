@@ -39,11 +39,13 @@ export default defineConfig({
     'src/behaviors/image-optimize.ts',
     // adapters
     'src/adapters/cf-function.ts',
+    'src/adapters/viewer-request.ts',
+    'src/adapters/viewer-response.ts',
     'src/adapters/lambda-edge.ts',
     // helpers
     'src/helpers/index.ts',
     'src/helpers/send-country-code.ts',
-    'src/helpers/staging-whitelist.ts',
+    'src/helpers/whitelist.ts',
     'src/helpers/preflight-request.ts',
   ],
   format: ['cjs', 'esm'],

@@ -33,7 +33,7 @@ src/
     cf-function.ts    # defineViewerRequest(), defineViewerResponse()
     lambda-edge.ts    # defineViewerRequest(), defineViewerResponse()
   helpers/
-    staging-whitelist.ts  # Generic IP + UA allowlist for staging environments (no defaults)
+    whitelist.ts          # Generic IP + UA allowlist for staging environments (no defaults)
     send-country-code.ts   # Copy CloudFront-Viewer-Country to a request header (default: x-viewer-country)
     staging-indicator.ts   # Add x-cf-distribution: staging to response
 scripts/
