@@ -1,68 +1,87 @@
 import type { ResponseBehaviorFn, HttpRequest, HttpResponse } from '../core/types.js'
 
 /**
- * Options for overriding individual security header values.
- * All fields are optional; omitted fields fall back to their secure defaults.
+ * Options for individual security header values.
+ *
+ * Only headers with a provided value are emitted — omitted fields are **not** added to the
+ * response. There are no built-in defaults; every emitted header value is explicit.
+ *
+ * Pass at least one field.
  */
 export interface SecurityHeadersOptions {
   /**
    * Value for the `Strict-Transport-Security` header.
-   * Default: `'max-age=31536000; includeSubDomains'`
+   * Example: `'max-age=31536000; includeSubDomains'`
    */
   hsts?: string
   /**
    * Value for the `X-Frame-Options` header. Controls whether the page can be
    * embedded in an iframe. Common values: `'DENY'`, `'SAMEORIGIN'`.
-   * Default: `'SAMEORIGIN'`
    */
   xFrameOptions?: string
   /**
    * Value for the `X-Content-Type-Options` header. Set to `'nosniff'` to
    * prevent browsers from MIME-sniffing the response content type.
-   * Default: `'nosniff'`
    */
   xContentTypeOptions?: string
+  /**
+   * Value for the `X-XSS-Protection` header.
+   * Example: `'1; mode=block'`
+   *
+   * Note: deprecated in modern browsers but still used for legacy compatibility.
+   */
+  xXssProtection?: string
 }
 
 /**
- * Sets common security headers on the outgoing response.
+ * Sets security headers on the outgoing response.
  *
- * Applied headers and their defaults:
- * - `Strict-Transport-Security`: `max-age=31536000; includeSubDomains`
- * - `X-Frame-Options`: `SAMEORIGIN`
- * - `X-Content-Type-Options`: `nosniff`
+ * Only headers explicitly provided in `options` are emitted — there are **no built-in
+ * defaults**. This avoids silently overriding headers set elsewhere in the pipeline and
+ * lets Akamai-migrated properties carry their original values verbatim.
  *
- * Akamai equivalent: `httpStrictTransportSecurity` behavior (HSTS only).
+ * Supported headers:
+ * - `Strict-Transport-Security` (`hsts`)
+ * - `X-Frame-Options` (`xFrameOptions`)
+ * - `X-Content-Type-Options` (`xContentTypeOptions`)
+ * - `X-XSS-Protection` (`xXssProtection`)
  *
- * @param options - Optional overrides for individual header values.
- * @returns A `ResponseBehaviorFn` to use directly in `defineViewerResponse` or wrapped in a `ResponseRule`.
+ * Akamai equivalents: `httpStrictTransportSecurity` (HSTS), `modifyOutgoingResponseHeader`
+ * (frame options, content-type options, XSS protection).
+ *
+ * @param options - Security header values to set. Pass at least one field.
+ * @returns A `ResponseBehaviorFn` to use in `defineViewerResponse` or a `ResponseRule`.
  *
  * @example
  * ```ts
  * import { setSecurityHeaders } from '@rayselfs/cf-rule-engine/behaviors'
  * import { defineViewerResponse } from '@rayselfs/cf-rule-engine/adapters/cf-function'
  *
- * // Apply defaults
- * export default defineViewerResponse([setSecurityHeaders()])
- *
- * // Override HSTS and frame options
  * export default defineViewerResponse([
- *   setSecurityHeaders({ hsts: 'max-age=63072000; includeSubDomains; preload', xFrameOptions: 'DENY' }),
+ *   setSecurityHeaders({
+ *     hsts: 'max-age=31536000; includeSubDomains',
+ *     xFrameOptions: 'SAMEORIGIN',
+ *     xContentTypeOptions: 'nosniff',
+ *     xXssProtection: '1; mode=block',
+ *   }),
  * ])
  * ```
  */
-export function setSecurityHeaders(options?: SecurityHeadersOptions): ResponseBehaviorFn {
-  const hsts = options?.hsts ?? 'max-age=31536000; includeSubDomains'
-  const xFrameOptions = options?.xFrameOptions ?? 'SAMEORIGIN'
-  const xContentTypeOptions = options?.xContentTypeOptions ?? 'nosniff'
-
+export function setSecurityHeaders(options: SecurityHeadersOptions): ResponseBehaviorFn {
   return (_request: HttpRequest, response: HttpResponse): HttpResponse => {
+    const extra: Record<string, { value: string }> = {}
+
+    if (options.hsts !== undefined)
+      extra['strict-transport-security'] = { value: options.hsts }
+    if (options.xFrameOptions !== undefined)
+      extra['x-frame-options'] = { value: options.xFrameOptions }
+    if (options.xContentTypeOptions !== undefined)
+      extra['x-content-type-options'] = { value: options.xContentTypeOptions }
+    if (options.xXssProtection !== undefined)
+      extra['x-xss-protection'] = { value: options.xXssProtection }
+
     return Object.assign({}, response, {
-      headers: Object.assign({}, response.headers, {
-        'strict-transport-security': { value: hsts },
-        'x-frame-options': { value: xFrameOptions },
-        'x-content-type-options': { value: xContentTypeOptions },
-      }),
+      headers: Object.assign({}, response.headers, extra),
     })
   }
 }
