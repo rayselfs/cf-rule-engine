@@ -1,6 +1,6 @@
 {
   "name": "@rayselfs/cf-rule-engine",
-  "version": "1.6.1",
+  "version": "1.6.2",
   "description": "Composable, tree-shakeable CloudFront Function rules",
   "license": "MIT",
   "sideEffects": false,

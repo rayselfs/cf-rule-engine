@@ -30,7 +30,10 @@ src/
                       #   stripQueryParams, setCsp, setCacheControl, setSecurityHeaders,
                       #   imageOptimize, verifyToken (Lambda@Edge only — needs Node.js crypto)
   adapters/
-    cf-function.ts    # defineViewerRequest(), defineViewerResponse()
+    cf-function.ts    # backward-compat re-export of viewer-request + viewer-response
+    viewer-request.ts # defineViewerRequest() — standalone, tree-shake-friendly
+    viewer-response.ts# defineViewerResponse() — standalone, tree-shake-friendly
+    _normalize.ts     # internal shared helpers (not a public entry point)
     lambda-edge.ts    # defineViewerRequest(), defineViewerResponse()
   helpers/
     whitelist.ts          # Generic IP + UA allowlist for staging environments (no defaults)
@@ -56,7 +59,7 @@ tests/
 | Add/modify a behavior | `src/behaviors/<name>.ts` → add to `src/behaviors/index.ts` + `tsup.config.ts` → write `tests/behaviors/<name>.test.ts` |
 | Add/modify a helper | `src/helpers/<name>.ts` → add to `src/helpers/index.ts` + `tsup.config.ts` → write `tests/helpers/<name>.test.ts` |
 | Chain multiple behaviors on one rule | `chain()` in `src/core/rule.ts` |
-| CF Function adapter (header format, body handling) | `src/adapters/cf-function.ts` |
+| CF Function adapter (header format, body handling) | `src/adapters/viewer-request.ts`, `src/adapters/viewer-response.ts` (impls); `src/adapters/_normalize.ts` (shared helpers); `src/adapters/cf-function.ts` (backward-compat re-export) |
 | Lambda@Edge adapter | `src/adapters/lambda-edge.ts` |
 | CLI: analyze Akamai property | `scripts/analyze-akamai.ts` |
 | CLI: generate cf-engine draft | `scripts/generate-rules.ts` |
@@ -254,8 +257,11 @@ Terraform reads `dist/*.js` at plan time. **Always commit built files** in the c
 - Lambda@Edge: `request.headers['x-foo'] = [{ key: 'X-Foo', value: 'bar' }]` (array)
 
 The adapters handle this automatically. Always use the correct adapter:
-- `import { defineViewerRequest } from '@rayselfs/cf-rule-engine/adapters/cf-function'`
-- `import { defineViewerRequest } from '@rayselfs/cf-rule-engine/adapters/lambda-edge'`
+- `import { defineViewerRequest } from '@rayselfs/cf-rule-engine/adapters/viewer-request'`
+- `import { defineViewerResponse } from '@rayselfs/cf-rule-engine/adapters/viewer-response'`
+- `import { defineViewerRequest } from '@rayselfs/cf-rule-engine/adapters/lambda-edge'` (Lambda@Edge)
+
+> `adapters/cf-function` still works but imports both functions from the same chunk — prefer the split paths for better tree-shaking.
 
 ### 4. package.json exports — `types` Must Come First
 In package.json exports map, `types` condition must be declared before `import`/`require`, or esbuild will warn.

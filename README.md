@@ -18,7 +18,7 @@ npm install @rayselfs/cf-rule-engine
 import { rule, not } from '@rayselfs/cf-rule-engine'
 import { ipCidr, methodIs } from '@rayselfs/cf-rule-engine/criteria/index'
 import { redirect, constructResponse } from '@rayselfs/cf-rule-engine/behaviors/index'
-import { defineViewerRequest } from '@rayselfs/cf-rule-engine/adapters/cf-function'
+import { defineViewerRequest } from '@rayselfs/cf-rule-engine/adapters/viewer-request'
 
 export default defineViewerRequest([
   rule(not(ipCidr(['10.0.0.0/8', '172.16.0.0/12'])), redirect(302, '/blocked')),
@@ -30,7 +30,7 @@ export default defineViewerRequest([
 
 ```typescript
 import { setSecurityHeaders, setCorsHeaders } from '@rayselfs/cf-rule-engine/behaviors/index'
-import { defineViewerResponse } from '@rayselfs/cf-rule-engine/adapters/cf-function'
+import { defineViewerResponse } from '@rayselfs/cf-rule-engine/adapters/viewer-response'
 
 export default defineViewerResponse([
   setSecurityHeaders(),
@@ -70,7 +70,9 @@ Use `chain()` when one behavior must see the request mutations (URI rewrite, hea
 
 | Adapter | Import | Use for |
 |---|---|---|
-| CF Function | `@rayselfs/cf-rule-engine/adapters/cf-function` | `viewer-request`, `viewer-response` |
+| CF Function (viewer-request) | `@rayselfs/cf-rule-engine/adapters/viewer-request` | `viewer-request` only — tree-shake-friendly |
+| CF Function (viewer-response) | `@rayselfs/cf-rule-engine/adapters/viewer-response` | `viewer-response` only — tree-shake-friendly |
+| CF Function (combined) | `@rayselfs/cf-rule-engine/adapters/cf-function` | both — backward compat |
 | Lambda@Edge | `@rayselfs/cf-rule-engine/adapters/lambda-edge` | `viewer-request`, `viewer-response` |
 
 ## Akamai → CloudFront Mapping
