@@ -25,8 +25,8 @@ function matchesOriginPattern(origin: string, pattern: string): boolean {
  *
  * const CORS: CorsOptions = {
  *   allowedOrigins: ORIGIN_WILDCARD,
- *   allowedMethods: 'GET, POST, OPTIONS',
- *   allowedHeaders: 'Content-Type, Cache-Control, Pragma, Range',
+ *   allowedMethods: ['GET', 'POST', 'OPTIONS'],
+ *   allowedHeaders: ['Content-Type', 'Cache-Control', 'Pragma', 'Range'],
  * }
  *
  * // viewer-request.ts
@@ -44,8 +44,8 @@ function matchesOriginPattern(origin: string, pattern: string): boolean {
  */
 export function preflightRequest(options: CorsOptions): Rule {
   const { allowedOrigins } = options
-  const allowedMethods = options.allowedMethods ?? 'GET, POST, OPTIONS'
-  const allowedHeaders = options.allowedHeaders ?? 'Content-Type, Cache-Control, Pragma, Range'
+  const allowedMethods = options.allowedMethods ?? ['GET', 'POST', 'OPTIONS']
+  const allowedHeaders = options.allowedHeaders ?? ['Content-Type', 'Cache-Control', 'Pragma', 'Range']
   const allowCredentials = options.allowCredentials ?? false
   const maxAge = options.maxAge
 
@@ -67,8 +67,8 @@ export function preflightRequest(options: CorsOptions): Rule {
 
       const headers: Record<string, { value: string }> = {
         'cache-control': { value: 'no-store' },
-        'access-control-allow-methods': { value: allowedMethods },
-        'access-control-allow-headers': { value: allowedHeaders },
+        'access-control-allow-methods': { value: allowedMethods.join(', ') },
+        'access-control-allow-headers': { value: allowedHeaders.join(', ') },
       }
 
       if (allowOrigin !== undefined) {
