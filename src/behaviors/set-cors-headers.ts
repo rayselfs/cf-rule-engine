@@ -21,6 +21,20 @@ export type Origin = `https://${string}` | `http://${string}`
 export type OriginPolicy = OriginWildcard | Origin[] | OriginEcho
 
 /**
+ * Standard HTTP methods allowed in `Access-Control-Allow-Methods`.
+ */
+export type Methods =
+  | 'GET'
+  | 'POST'
+  | 'PUT'
+  | 'DELETE'
+  | 'PATCH'
+  | 'HEAD'
+  | 'OPTIONS'
+  | 'TRACE'
+  | 'CONNECT'
+
+/**
  * CORS configuration options for `setCorsHeaders` and `preflightRequest`.
  */
 export interface CorsOptions {
@@ -29,15 +43,21 @@ export interface CorsOptions {
    */
   allowedOrigins: OriginPolicy
   /**
-   * Value for the `Access-Control-Allow-Methods` header.
+   * HTTP methods to include in `Access-Control-Allow-Methods`.
+   * Array items are joined with `, ` before being written to the header.
    * Omit to exclude the header.
+   *
+   * @example `['GET', 'POST', 'OPTIONS']`
    */
-  allowedMethods?: string
+  allowedMethods?: Methods[]
   /**
-   * Value for the `Access-Control-Allow-Headers` header.
+   * Header names to include in `Access-Control-Allow-Headers`.
+   * Array items are joined with `, ` before being written to the header.
    * Omit to exclude the header.
+   *
+   * @example `['Content-Type', 'Authorization']`
    */
-  allowedHeaders?: string
+  allowedHeaders?: string[]
   /**
    * When `true`, sets `Access-Control-Allow-Credentials: true`.
    * Use with `ORIGIN_ECHO` or `Origin[]` — browsers reject `*` with credentials.
@@ -108,11 +128,11 @@ export function setCorsHeaders(options: CorsOptions): ResponseBehaviorFn {
     }
 
     if (options.allowedMethods !== undefined) {
-      corsHeaders['access-control-allow-methods'] = { value: options.allowedMethods }
+      corsHeaders['access-control-allow-methods'] = { value: options.allowedMethods.join(', ') }
     }
 
     if (options.allowedHeaders !== undefined) {
-      corsHeaders['access-control-allow-headers'] = { value: options.allowedHeaders }
+      corsHeaders['access-control-allow-headers'] = { value: options.allowedHeaders.join(', ') }
     }
 
     if (options.allowCredentials) {
