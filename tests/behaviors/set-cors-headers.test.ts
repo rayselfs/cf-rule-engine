@@ -79,15 +79,32 @@ describe('setCorsHeaders', () => {
 
   describe('optional headers', () => {
     it('sets allowedMethods when provided', () => {
-      const fn = setCorsHeaders({ allowedOrigins: ORIGIN_WILDCARD, allowedMethods: 'GET, POST' })
+      const fn = setCorsHeaders({ allowedOrigins: ORIGIN_WILDCARD, allowedMethods: ['GET', 'POST'] })
       const result = fn(baseRequest, baseResponse)
       expect(result.headers['access-control-allow-methods']).toEqual({ value: 'GET, POST' })
     })
 
+    it('sets allowedMethods as single-element array', () => {
+      const fn = setCorsHeaders({ allowedOrigins: ORIGIN_WILDCARD, allowedMethods: ['OPTIONS'] })
+      const result = fn(baseRequest, baseResponse)
+      expect(result.headers['access-control-allow-methods']).toEqual({ value: 'OPTIONS' })
+    })
+
     it('sets allowedHeaders when provided', () => {
-      const fn = setCorsHeaders({ allowedOrigins: ORIGIN_WILDCARD, allowedHeaders: 'Content-Type' })
+      const fn = setCorsHeaders({ allowedOrigins: ORIGIN_WILDCARD, allowedHeaders: ['Content-Type'] })
       const result = fn(baseRequest, baseResponse)
       expect(result.headers['access-control-allow-headers']).toEqual({ value: 'Content-Type' })
+    })
+
+    it('sets allowedHeaders with multiple values joined by ", "', () => {
+      const fn = setCorsHeaders({
+        allowedOrigins: ORIGIN_WILDCARD,
+        allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-Id'],
+      })
+      const result = fn(baseRequest, baseResponse)
+      expect(result.headers['access-control-allow-headers']).toEqual({
+        value: 'Content-Type, Authorization, X-Request-Id',
+      })
     })
 
     it('sets allow-credentials when allowCredentials is true', () => {

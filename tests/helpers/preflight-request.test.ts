@@ -71,7 +71,7 @@ describe('preflightRequest', () => {
 
   describe('custom options', () => {
     it('uses custom allowedMethods', () => {
-      const rule = preflightRequest({ allowedOrigins: ORIGIN_WILDCARD, allowedMethods: 'GET, POST, PUT, DELETE, OPTIONS' })
+      const rule = preflightRequest({ allowedOrigins: ORIGIN_WILDCARD, allowedMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'] })
       const result = rule.behavior(makeRequest('OPTIONS'))
       if (result.action === 'respond') {
         expect(result.response.headers['access-control-allow-methods']).toEqual({
@@ -167,8 +167,8 @@ describe('preflightRequest', () => {
     it('accepts the same options object without error', () => {
       const CORS = {
         allowedOrigins: ORIGIN_WILDCARD,
-        allowedMethods: 'GET, POST, OPTIONS',
-        allowedHeaders: 'Content-Type, Authorization',
+        allowedMethods: ['GET', 'POST', 'OPTIONS'] as const,
+        allowedHeaders: ['Content-Type', 'Authorization'],
         maxAge: 3600,
       }
       expect(() => preflightRequest(CORS)).not.toThrow()
