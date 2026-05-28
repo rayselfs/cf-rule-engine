@@ -136,7 +136,9 @@ setCorsHeaders({ allowedOrigins: ['https://*.viverse.com', 'https://sdk-api.vive
 setCorsHeaders({ allowedOrigins: ORIGIN_ECHO, allowCredentials: true })
 ```
 
-`allowedMethods` and `allowedHeaders` are optional — omit to exclude those headers from the response.
+`allowedMethods` accepts a `Methods[]` array (e.g. `['GET', 'POST', 'OPTIONS']`); items are joined with `, ` to form the header value.
+`allowedHeaders` accepts a `string[]` array (e.g. `['Content-Type', 'Authorization']`); items are joined with `, `.
+Both are optional — omit to exclude those headers from the response.
 
 ## Helpers (`@rayselfs/cf-rule-engine/helpers/index`)
 
