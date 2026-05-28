@@ -22,7 +22,7 @@ import type { CriteriaFn } from '../core/types.js'
  * // Apply CORS headers only for requests from known origins
  * rule(
  *   headerEquals('origin', ['https://www.example.com', 'https://store.example.com']),
- *   setCorsHeaders({ allowOriginEcho: true, allowCredentials: true }),
+ *   setCorsHeaders({ allowedOrigins: ['*'], allowOriginEcho: true, allowCredentials: true }),
  * )
  * ```
  */

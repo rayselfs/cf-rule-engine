@@ -7,9 +7,8 @@ export interface CorsOptions {
   /**
    * List of allowed origin patterns. Supports exact strings and wildcard `*` patterns
    * (e.g. `'https://*.example.com'`). Use `['*']` to allow all origins.
-   * Default: `['*']`
    */
-  allowedOrigins?: string[]
+  allowedOrigins: string[]
   /**
    * When `true`, reflects the incoming `Origin` request header as the
    * `Access-Control-Allow-Origin` response value, provided it matches one of
@@ -20,12 +19,12 @@ export interface CorsOptions {
   allowOriginEcho?: boolean
   /**
    * Value for the `Access-Control-Allow-Methods` header.
-   * Default: `'GET, POST, OPTIONS'`
+   * Omit to exclude the header.
    */
   allowedMethods?: string
   /**
    * Value for the `Access-Control-Allow-Headers` header.
-   * Default: `'Content-Type, Cache-Control, Pragma, Range'`
+   * Omit to exclude the header.
    */
   allowedHeaders?: string
   /**
@@ -56,7 +55,7 @@ function matchesOriginPattern(origin: string, pattern: string): boolean {
  * Akamai equivalent: typically implemented via `modifyOutgoingResponseHeader` rules
  * for each CORS header individually.
  *
- * @param options - CORS configuration. All fields are optional with safe defaults.
+ * @param options - CORS configuration. `allowedOrigins` is required.
  * @returns A `ResponseBehaviorFn` to use directly in `defineViewerResponse` or wrapped in a `ResponseRule`.
  *
  * @example
@@ -64,8 +63,8 @@ function matchesOriginPattern(origin: string, pattern: string): boolean {
  * import { setCorsHeaders } from '@rayselfs/cf-rule-engine/behaviors'
  * import { defineViewerResponse } from '@rayselfs/cf-rule-engine/adapters/cf-function'
  *
- * // Allow all origins (default)
- * export default defineViewerResponse([setCorsHeaders()])
+ * // Allow all origins explicitly
+ * export default defineViewerResponse([setCorsHeaders({ allowedOrigins: ['*'] })])
  *
  * // Echo origin with credentials (e.g. for authenticated API endpoints)
  * export default defineViewerResponse([
@@ -79,15 +78,14 @@ function matchesOriginPattern(origin: string, pattern: string): boolean {
  * ])
  * ```
  */
-export function setCorsHeaders(options?: CorsOptions): ResponseBehaviorFn {
-  const allowedOrigins = options?.allowedOrigins ?? ['*']
-  const allowedMethods = options?.allowedMethods ?? 'GET, POST, OPTIONS'
-  const allowedHeaders = options?.allowedHeaders ?? 'Content-Type, Cache-Control, Pragma, Range'
+export function setCorsHeaders(options: CorsOptions): ResponseBehaviorFn {
+  const { allowedOrigins } = options
+  if (allowedOrigins.length === 0) throw new Error('setCorsHeaders: allowedOrigins must not be empty')
 
   return (request: HttpRequest, response: HttpResponse): HttpResponse => {
-    let allowOrigin = allowedOrigins[0] ?? '*'
+    let allowOrigin = allowedOrigins[0]
 
-    if (options?.allowOriginEcho) {
+    if (options.allowOriginEcho) {
       const originHeader = request.headers['origin']?.value
       if (originHeader && allowedOrigins.some((p) => matchesOriginPattern(originHeader, p))) {
         allowOrigin = originHeader
@@ -96,15 +94,21 @@ export function setCorsHeaders(options?: CorsOptions): ResponseBehaviorFn {
 
     const corsHeaders: Record<string, { value: string }> = {
       'access-control-allow-origin': { value: allowOrigin },
-      'access-control-allow-methods': { value: allowedMethods },
-      'access-control-allow-headers': { value: allowedHeaders },
     }
 
-    if (options?.allowCredentials) {
+    if (options.allowedMethods !== undefined) {
+      corsHeaders['access-control-allow-methods'] = { value: options.allowedMethods }
+    }
+
+    if (options.allowedHeaders !== undefined) {
+      corsHeaders['access-control-allow-headers'] = { value: options.allowedHeaders }
+    }
+
+    if (options.allowCredentials) {
       corsHeaders['access-control-allow-credentials'] = { value: 'true' }
     }
 
-    if (options?.maxAge !== undefined) {
+    if (options.maxAge !== undefined) {
       corsHeaders['access-control-max-age'] = { value: String(options.maxAge) }
     }
 

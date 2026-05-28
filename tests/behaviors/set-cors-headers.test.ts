@@ -17,14 +17,18 @@ describe('setCorsHeaders', () => {
     const fn = setCorsHeaders({ allowedOrigins: ['*'] })
     const result = fn(baseRequest, baseResponse)
     expect(result.headers['access-control-allow-origin']).toEqual({ value: '*' })
-    expect(result.headers['access-control-allow-methods']).toBeDefined()
-    expect(result.headers['access-control-allow-headers']).toBeDefined()
+    expect(result.headers['access-control-allow-methods']).toBeUndefined()
+    expect(result.headers['access-control-allow-headers']).toBeUndefined()
   })
 
-  it('uses defaults when no options given', () => {
-    const fn = setCorsHeaders()
+  it('uses wildcard origin when allowedOrigins is [\'*\']', () => {
+    const fn = setCorsHeaders({ allowedOrigins: ['*'] })
     const result = fn(baseRequest, baseResponse)
     expect(result.headers['access-control-allow-origin'].value).toBe('*')
+  })
+
+  it('throws when allowedOrigins is empty', () => {
+    expect(() => setCorsHeaders({ allowedOrigins: [] })).toThrow('allowedOrigins must not be empty')
   })
 
   it('echoes origin when allowOriginEcho and origin matches', () => {
@@ -48,13 +52,13 @@ describe('setCorsHeaders', () => {
   })
 
   it('sets allow-credentials when enabled', () => {
-    const fn = setCorsHeaders({ allowCredentials: true })
+    const fn = setCorsHeaders({ allowedOrigins: ['*'], allowCredentials: true })
     const result = fn(baseRequest, baseResponse)
     expect(result.headers['access-control-allow-credentials'].value).toBe('true')
   })
 
   it('sets max-age when provided', () => {
-    const fn = setCorsHeaders({ maxAge: 3600 })
+    const fn = setCorsHeaders({ allowedOrigins: ['*'], maxAge: 3600 })
     const result = fn(baseRequest, baseResponse)
     expect(result.headers['access-control-max-age'].value).toBe('3600')
   })
