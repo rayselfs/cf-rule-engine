@@ -29,12 +29,12 @@ export default defineViewerRequest([
 **viewer-response** — security and CORS headers:
 
 ```typescript
-import { setSecurityHeaders, setCorsHeaders } from '@rayselfs/cf-rule-engine/behaviors/index'
+import { setSecurityHeaders, setCorsHeaders, ORIGIN_WILDCARD } from '@rayselfs/cf-rule-engine/behaviors/index'
 import { defineViewerResponse } from '@rayselfs/cf-rule-engine/adapters/viewer-response'
 
 export default defineViewerResponse([
   setSecurityHeaders(),
-  setCorsHeaders({ allowedOrigins: ['https://www.example.com'] }),
+  setCorsHeaders({ allowedOrigins: ORIGIN_WILDCARD }),
 ])
 ```
 
@@ -113,6 +113,31 @@ Use `chain()` when one behavior must see the request mutations (URI rewrite, hea
 | `imageOptimize(options)` | ✅ | ✅ |
 | `verifyToken(options)` | ❌ | ✅ |
 
+### setCorsHeaders — OriginPolicy
+
+`allowedOrigins` accepts an `OriginPolicy` that controls how `Access-Control-Allow-Origin` is set:
+
+| Value | Behavior |
+|---|---|
+| `ORIGIN_WILDCARD` (`'*'`) | Static `Access-Control-Allow-Origin: *` — for fully public APIs |
+| `Origin[]` | Compare request `Origin` against the list; echo if matched, skip if not. Supports wildcard subdomains (`https://*.example.com`). |
+| `ORIGIN_ECHO` (`'echo'`) | Echo any request `Origin` if present, skip if none — use with `allowCredentials: true` |
+
+```typescript
+import { setCorsHeaders, ORIGIN_WILDCARD, ORIGIN_ECHO } from '@rayselfs/cf-rule-engine/behaviors/index'
+
+// Public API
+setCorsHeaders({ allowedOrigins: ORIGIN_WILDCARD })
+
+// Restricted — echo only listed origins
+setCorsHeaders({ allowedOrigins: ['https://*.viverse.com', 'https://sdk-api.viverse.com'] })
+
+// Echo any origin (required when allowCredentials: true)
+setCorsHeaders({ allowedOrigins: ORIGIN_ECHO, allowCredentials: true })
+```
+
+`allowedMethods` and `allowedHeaders` are optional — omit to exclude those headers from the response.
+
 ## Helpers (`@rayselfs/cf-rule-engine/helpers/index`)
 
 Helpers are pre-configured rule factories that combine multiple criteria and behaviors for common use cases.
@@ -134,9 +159,10 @@ Adds `x-cf-distribution: staging` to the response when the request carries `aws-
 
 ```typescript
 import { stagingIndicator } from '@rayselfs/cf-rule-engine/helpers/index'
+import { setCorsHeaders, ORIGIN_WILDCARD } from '@rayselfs/cf-rule-engine/behaviors/index'
 
 defineViewerResponse([
-  setCorsHeaders({ allowedOrigins: ['https://www.example.com'] }),
+  setCorsHeaders({ allowedOrigins: ORIGIN_WILDCARD }),
   stagingIndicator(),
 ])
 ```

@@ -1,5 +1,5 @@
 import type { Rule } from '../core/types.js'
-import type { CorsOptions } from '../behaviors/set-cors-headers.js'
+import { type CorsOptions, ORIGIN_WILDCARD, ORIGIN_ECHO } from '../behaviors/set-cors-headers.js'
 import { methodIs } from '../criteria/method-is.js'
 
 function matchesOriginPattern(origin: string, pattern: string): boolean {
@@ -13,17 +13,18 @@ function matchesOriginPattern(origin: string, pattern: string): boolean {
  * Returns a `Rule` that responds 204 to OPTIONS preflight requests with CORS headers.
  *
  * Accepts the same `CorsOptions` as `setCorsHeaders` — pass the same object to both
- * to define CORS config in one place.
+ * to define CORS config in one place. `allowedMethods` and `allowedHeaders` default to
+ * permissive values if omitted.
  *
  * @example
  * ```ts
  * import { preflightRequest } from '@rayselfs/cf-rule-engine/helpers'
- * import { setCorsHeaders } from '@rayselfs/cf-rule-engine/behaviors'
+ * import { setCorsHeaders, ORIGIN_WILDCARD } from '@rayselfs/cf-rule-engine/behaviors'
  * import { defineViewerRequest, defineViewerResponse } from '@rayselfs/cf-rule-engine/adapters/cf-function'
  * import type { CorsOptions } from '@rayselfs/cf-rule-engine/behaviors'
  *
  * const CORS: CorsOptions = {
- *   allowedOrigins: ['*'],
+ *   allowedOrigins: ORIGIN_WILDCARD,
  *   allowedMethods: 'GET, POST, OPTIONS',
  *   allowedHeaders: 'Content-Type, Cache-Control, Pragma, Range',
  * }
@@ -41,33 +42,37 @@ function matchesOriginPattern(origin: string, pattern: string): boolean {
  *
  * @returns A `Rule` ready to pass into `defineViewerRequest`.
  */
-export function preflightRequest(options?: CorsOptions): Rule {
-  const allowedOrigins = options?.allowedOrigins ?? ['*']
-  const allowedMethods = options?.allowedMethods ?? 'GET, POST, OPTIONS'
-  const allowedHeaders = options?.allowedHeaders ?? 'Content-Type, Cache-Control, Pragma, Range'
-  const allowCredentials = options?.allowCredentials ?? false
-  const maxAge = options?.maxAge
+export function preflightRequest(options: CorsOptions): Rule {
+  const { allowedOrigins } = options
+  const allowedMethods = options.allowedMethods ?? 'GET, POST, OPTIONS'
+  const allowedHeaders = options.allowedHeaders ?? 'Content-Type, Cache-Control, Pragma, Range'
+  const allowCredentials = options.allowCredentials ?? false
+  const maxAge = options.maxAge
 
   return {
     criteria: methodIs(['OPTIONS']),
     behavior: (request) => {
-      let allowOrigin: string
+      let allowOrigin: string | undefined
 
-      if (options?.allowOriginEcho) {
-        const originHeader = request.headers['origin']?.value
-        allowOrigin =
-          originHeader && allowedOrigins.some((p) => matchesOriginPattern(originHeader, p))
-            ? originHeader
-            : (allowedOrigins[0] ?? '*')
+      if (allowedOrigins === ORIGIN_WILDCARD) {
+        allowOrigin = '*'
+      } else if (allowedOrigins === ORIGIN_ECHO) {
+        allowOrigin = request.headers['origin']?.value
       } else {
-        allowOrigin = allowedOrigins.includes('*') ? '*' : (allowedOrigins[0] ?? '*')
+        const originHeader = request.headers['origin']?.value
+        if (originHeader && allowedOrigins.some((p) => matchesOriginPattern(originHeader, p))) {
+          allowOrigin = originHeader
+        }
       }
 
       const headers: Record<string, { value: string }> = {
         'cache-control': { value: 'no-store' },
-        'access-control-allow-origin': { value: allowOrigin },
         'access-control-allow-methods': { value: allowedMethods },
         'access-control-allow-headers': { value: allowedHeaders },
+      }
+
+      if (allowOrigin !== undefined) {
+        headers['access-control-allow-origin'] = { value: allowOrigin }
       }
 
       if (allowCredentials) {

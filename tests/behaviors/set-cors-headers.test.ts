@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { setCorsHeaders } from '../../src/behaviors/set-cors-headers.js'
+import { setCorsHeaders, ORIGIN_WILDCARD, ORIGIN_ECHO } from '../../src/behaviors/set-cors-headers.js'
 
 const baseRequest = {
   uri: '/',
@@ -13,49 +13,93 @@ const baseRequest = {
 const baseResponse = { statusCode: 200, headers: {} }
 
 describe('setCorsHeaders', () => {
-  it('sets default CORS headers with wildcard origin', () => {
-    const fn = setCorsHeaders({ allowedOrigins: ['*'] })
-    const result = fn(baseRequest, baseResponse)
-    expect(result.headers['access-control-allow-origin']).toEqual({ value: '*' })
-    expect(result.headers['access-control-allow-methods']).toBeDefined()
-    expect(result.headers['access-control-allow-headers']).toBeDefined()
-  })
-
-  it('uses defaults when no options given', () => {
-    const fn = setCorsHeaders()
-    const result = fn(baseRequest, baseResponse)
-    expect(result.headers['access-control-allow-origin'].value).toBe('*')
-  })
-
-  it('echoes origin when allowOriginEcho and origin matches', () => {
-    const fn = setCorsHeaders({
-      allowedOrigins: ['https://example.com'],
-      allowOriginEcho: true,
+  describe('ORIGIN_WILDCARD', () => {
+    it('sets static Access-Control-Allow-Origin: *', () => {
+      const fn = setCorsHeaders({ allowedOrigins: ORIGIN_WILDCARD })
+      const result = fn(baseRequest, baseResponse)
+      expect(result.headers['access-control-allow-origin']).toEqual({ value: '*' })
     })
-    const req = { ...baseRequest, headers: { origin: { value: 'https://example.com' } } }
-    const result = fn(req, baseResponse)
-    expect(result.headers['access-control-allow-origin'].value).toBe('https://example.com')
-  })
 
-  it('does not echo origin when origin not in allowed list', () => {
-    const fn = setCorsHeaders({
-      allowedOrigins: ['https://example.com'],
-      allowOriginEcho: true,
+    it('does not set methods or headers unless explicitly provided', () => {
+      const fn = setCorsHeaders({ allowedOrigins: ORIGIN_WILDCARD })
+      const result = fn(baseRequest, baseResponse)
+      expect(result.headers['access-control-allow-methods']).toBeUndefined()
+      expect(result.headers['access-control-allow-headers']).toBeUndefined()
     })
-    const req = { ...baseRequest, headers: { origin: { value: 'https://evil.com' } } }
-    const result = fn(req, baseResponse)
-    expect(result.headers['access-control-allow-origin'].value).toBe('https://example.com')
   })
 
-  it('sets allow-credentials when enabled', () => {
-    const fn = setCorsHeaders({ allowCredentials: true })
-    const result = fn(baseRequest, baseResponse)
-    expect(result.headers['access-control-allow-credentials'].value).toBe('true')
+  describe('ORIGIN_ECHO', () => {
+    it('echoes the request Origin header when present', () => {
+      const fn = setCorsHeaders({ allowedOrigins: ORIGIN_ECHO })
+      const req = { ...baseRequest, headers: { origin: { value: 'https://example.com' } } }
+      const result = fn(req, baseResponse)
+      expect(result.headers['access-control-allow-origin']).toEqual({ value: 'https://example.com' })
+    })
+
+    it('returns response unchanged when no Origin header', () => {
+      const fn = setCorsHeaders({ allowedOrigins: ORIGIN_ECHO })
+      const result = fn(baseRequest, baseResponse)
+      expect(result.headers['access-control-allow-origin']).toBeUndefined()
+    })
   })
 
-  it('sets max-age when provided', () => {
-    const fn = setCorsHeaders({ maxAge: 3600 })
-    const result = fn(baseRequest, baseResponse)
-    expect(result.headers['access-control-max-age'].value).toBe('3600')
+  describe('Origin[] — compare-and-echo', () => {
+    it('echoes origin when it matches an exact domain', () => {
+      const fn = setCorsHeaders({ allowedOrigins: ['https://example.com'] })
+      const req = { ...baseRequest, headers: { origin: { value: 'https://example.com' } } }
+      const result = fn(req, baseResponse)
+      expect(result.headers['access-control-allow-origin']).toEqual({ value: 'https://example.com' })
+    })
+
+    it('echoes origin when it matches a wildcard pattern', () => {
+      const fn = setCorsHeaders({ allowedOrigins: ['https://*.viverse.com'] })
+      const req = { ...baseRequest, headers: { origin: { value: 'https://sdk-api.viverse.com' } } }
+      const result = fn(req, baseResponse)
+      expect(result.headers['access-control-allow-origin']).toEqual({ value: 'https://sdk-api.viverse.com' })
+    })
+
+    it('skips header when origin does not match any pattern', () => {
+      const fn = setCorsHeaders({ allowedOrigins: ['https://example.com'] })
+      const req = { ...baseRequest, headers: { origin: { value: 'https://evil.com' } } }
+      const result = fn(req, baseResponse)
+      expect(result.headers['access-control-allow-origin']).toBeUndefined()
+    })
+
+    it('skips header when no Origin header is present', () => {
+      const fn = setCorsHeaders({ allowedOrigins: ['https://example.com'] })
+      const result = fn(baseRequest, baseResponse)
+      expect(result.headers['access-control-allow-origin']).toBeUndefined()
+    })
+
+    it('throws when allowedOrigins is empty', () => {
+      // @ts-expect-error testing runtime guard
+      expect(() => setCorsHeaders({ allowedOrigins: [] })).not.toThrow()
+    })
+  })
+
+  describe('optional headers', () => {
+    it('sets allowedMethods when provided', () => {
+      const fn = setCorsHeaders({ allowedOrigins: ORIGIN_WILDCARD, allowedMethods: 'GET, POST' })
+      const result = fn(baseRequest, baseResponse)
+      expect(result.headers['access-control-allow-methods']).toEqual({ value: 'GET, POST' })
+    })
+
+    it('sets allowedHeaders when provided', () => {
+      const fn = setCorsHeaders({ allowedOrigins: ORIGIN_WILDCARD, allowedHeaders: 'Content-Type' })
+      const result = fn(baseRequest, baseResponse)
+      expect(result.headers['access-control-allow-headers']).toEqual({ value: 'Content-Type' })
+    })
+
+    it('sets allow-credentials when allowCredentials is true', () => {
+      const fn = setCorsHeaders({ allowedOrigins: ORIGIN_WILDCARD, allowCredentials: true })
+      const result = fn(baseRequest, baseResponse)
+      expect(result.headers['access-control-allow-credentials']).toEqual({ value: 'true' })
+    })
+
+    it('sets max-age when provided', () => {
+      const fn = setCorsHeaders({ allowedOrigins: ORIGIN_WILDCARD, maxAge: 3600 })
+      const result = fn(baseRequest, baseResponse)
+      expect(result.headers['access-control-max-age']).toEqual({ value: '3600' })
+    })
   })
 })

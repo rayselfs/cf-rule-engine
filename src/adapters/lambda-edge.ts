@@ -133,7 +133,7 @@ export function defineViewerRequest(rules: Rule[]): (event: unknown) => unknown 
  *
  * export const handler = defineViewerResponse([
  *   setSecurityHeaders(),
- *   setCorsHeaders({ allowedOrigins: ['https://www.example.com'], allowOriginEcho: true }),
+ *   setCorsHeaders({ allowedOrigins: ['https://www.example.com'] }),
  * ])
  * ```
  */
