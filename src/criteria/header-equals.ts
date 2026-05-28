@@ -17,12 +17,12 @@ import type { CriteriaFn } from '../core/types.js'
  * ```typescript
  * import { rule } from '@rayselfs/cf-rule-engine'
  * import { headerEquals } from '@rayselfs/cf-rule-engine/criteria'
- * import { setCorsHeaders } from '@rayselfs/cf-rule-engine/behaviors'
+ * import { setCorsHeaders, ORIGIN_ECHO } from '@rayselfs/cf-rule-engine/behaviors'
  *
  * // Apply CORS headers only for requests from known origins
  * rule(
  *   headerEquals('origin', ['https://www.example.com', 'https://store.example.com']),
- *   setCorsHeaders({ allowedOrigins: ['*'], allowOriginEcho: true, allowCredentials: true }),
+ *   setCorsHeaders({ allowedOrigins: ORIGIN_ECHO, allowCredentials: true }),
  * )
  * ```
  */

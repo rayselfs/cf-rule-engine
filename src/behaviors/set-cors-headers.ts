@@ -1,22 +1,33 @@
 import type { ResponseBehaviorFn, HttpRequest, HttpResponse } from '../core/types.js'
 
+export const ORIGIN_WILDCARD = '*' as const
+export type OriginWildcard = typeof ORIGIN_WILDCARD
+
+export const ORIGIN_ECHO = 'echo' as const
+export type OriginEcho = typeof ORIGIN_ECHO
+
 /**
- * CORS configuration options for the `setCorsHeaders` behavior.
+ * A valid HTTP origin — must start with `https://` or `http://`.
+ * Supports wildcard subdomains (e.g. `https://*.viverse.com`).
+ */
+export type Origin = `https://${string}` | `http://${string}`
+
+/**
+ * Controls how `Access-Control-Allow-Origin` is set:
+ * - `ORIGIN_WILDCARD` (`'*'`) — static `*`, allows all origins without inspection
+ * - `Origin[]` — compare request `Origin` header against the list; echo if matched, skip if not
+ * - `ORIGIN_ECHO` (`'echo'`) — echo any request `Origin` if present, skip if none
+ */
+export type OriginPolicy = OriginWildcard | Origin[] | OriginEcho
+
+/**
+ * CORS configuration options for `setCorsHeaders` and `preflightRequest`.
  */
 export interface CorsOptions {
   /**
-   * List of allowed origin patterns. Supports exact strings and wildcard `*` patterns
-   * (e.g. `'https://*.example.com'`). Use `['*']` to allow all origins.
+   * Origin policy. See `OriginPolicy` for details.
    */
-  allowedOrigins: string[]
-  /**
-   * When `true`, reflects the incoming `Origin` request header as the
-   * `Access-Control-Allow-Origin` response value, provided it matches one of
-   * `allowedOrigins`. Required when `allowCredentials` is `true` (browsers reject
-   * `Access-Control-Allow-Origin: *` with credentials).
-   * Default: `false`
-   */
-  allowOriginEcho?: boolean
+  allowedOrigins: OriginPolicy
   /**
    * Value for the `Access-Control-Allow-Methods` header.
    * Omit to exclude the header.
@@ -29,9 +40,7 @@ export interface CorsOptions {
   allowedHeaders?: string
   /**
    * When `true`, sets `Access-Control-Allow-Credentials: true`.
-   * Must be used together with `allowOriginEcho: true`; browsers reject
-   * wildcard origins when credentials are present.
-   * Default: `false`
+   * Use with `ORIGIN_ECHO` or `Origin[]` — browsers reject `*` with credentials.
    */
   allowCredentials?: boolean
   /**
@@ -49,48 +58,50 @@ function matchesOriginPattern(origin: string, pattern: string): boolean {
 }
 
 /**
- * Sets CORS response headers with configurable origin matching, methods, headers,
- * credentials, and preflight cache duration.
- *
- * Akamai equivalent: typically implemented via `modifyOutgoingResponseHeader` rules
- * for each CORS header individually.
+ * Sets CORS response headers with configurable origin policy.
  *
  * @param options - CORS configuration. `allowedOrigins` is required.
  * @returns A `ResponseBehaviorFn` to use directly in `defineViewerResponse` or wrapped in a `ResponseRule`.
  *
  * @example
  * ```ts
- * import { setCorsHeaders } from '@rayselfs/cf-rule-engine/behaviors'
- * import { defineViewerResponse } from '@rayselfs/cf-rule-engine/adapters/cf-function'
+ * import { setCorsHeaders, ORIGIN_WILDCARD, ORIGIN_ECHO } from '@rayselfs/cf-rule-engine/behaviors/set-cors-headers'
+ * import { defineViewerResponse } from '@rayselfs/cf-rule-engine/adapters/viewer-response'
  *
- * // Allow all origins explicitly
- * export default defineViewerResponse([setCorsHeaders({ allowedOrigins: ['*'] })])
- *
- * // Echo origin with credentials (e.g. for authenticated API endpoints)
+ * // Public API — static Access-Control-Allow-Origin: *
  * export default defineViewerResponse([
- *   setCorsHeaders({
- *     allowedOrigins: ['https://www.example.com', 'https://*.example.com'],
- *     allowOriginEcho: true,
- *     allowCredentials: true,
- *     allowedMethods: 'GET, POST, PUT, DELETE, OPTIONS',
- *     maxAge: 86400,
- *   }),
+ *   setCorsHeaders({ allowedOrigins: ORIGIN_WILDCARD }),
+ * ])
+ *
+ * // Restricted — echo only listed origins (supports wildcard subdomains)
+ * export default defineViewerResponse([
+ *   setCorsHeaders({ allowedOrigins: ['https://*.viverse.com', 'https://sdk-api.viverse.com'] }),
+ * ])
+ *
+ * // Echo any origin (e.g. for credentialed requests)
+ * export default defineViewerResponse([
+ *   setCorsHeaders({ allowedOrigins: ORIGIN_ECHO, allowCredentials: true }),
  * ])
  * ```
  */
 export function setCorsHeaders(options: CorsOptions): ResponseBehaviorFn {
   const { allowedOrigins } = options
-  if (allowedOrigins.length === 0) throw new Error('setCorsHeaders: allowedOrigins must not be empty')
 
   return (request: HttpRequest, response: HttpResponse): HttpResponse => {
-    let allowOrigin = allowedOrigins[0]
+    let allowOrigin: string | undefined
 
-    if (options.allowOriginEcho) {
+    if (allowedOrigins === ORIGIN_WILDCARD) {
+      allowOrigin = '*'
+    } else if (allowedOrigins === ORIGIN_ECHO) {
+      allowOrigin = request.headers['origin']?.value
+    } else {
       const originHeader = request.headers['origin']?.value
       if (originHeader && allowedOrigins.some((p) => matchesOriginPattern(originHeader, p))) {
         allowOrigin = originHeader
       }
     }
+
+    if (allowOrigin === undefined) return response
 
     const corsHeaders: Record<string, { value: string }> = {
       'access-control-allow-origin': { value: allowOrigin },
