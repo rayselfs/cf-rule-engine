@@ -105,7 +105,7 @@ function matchesOriginPattern(origin: string, pattern: string): boolean {
  * ```
  */
 export function setCorsHeaders(options: CorsOptions): ResponseBehaviorFn {
-  const { allowedOrigins } = options
+  const allowedOrigins = options.allowedOrigins
 
   return (request: HttpRequest, response: HttpResponse): HttpResponse => {
     let allowOrigin: string | undefined
