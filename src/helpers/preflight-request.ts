@@ -43,7 +43,7 @@ function matchesOriginPattern(origin: string, pattern: string): boolean {
  * @returns A `Rule` ready to pass into `defineViewerRequest`.
  */
 export function preflightRequest(options: CorsOptions): Rule {
-  const { allowedOrigins } = options
+  const allowedOrigins = options.allowedOrigins
   const allowedMethods = options.allowedMethods ?? ['GET', 'POST', 'OPTIONS']
   const allowedHeaders = options.allowedHeaders ?? ['Content-Type', 'Cache-Control', 'Pragma', 'Range']
   const allowCredentials = options.allowCredentials ?? false
