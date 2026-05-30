@@ -40,6 +40,7 @@ export type RewriteMode = 'set' | 'replace' | 'prepend' | 'regex-replace'
  * ```
  */
 export function rewriteUri(mode: RewriteMode, target: string, match?: string): BehaviorFn {
+  const re = (mode === 'regex-replace' && match !== undefined) ? new RegExp(match, 'g') : null
   return (request: HttpRequest) => {
     let uri = request.uri
     switch (mode) {
@@ -55,8 +56,9 @@ export function rewriteUri(mode: RewriteMode, target: string, match?: string): B
         }
         break
       case 'regex-replace':
-        if (match !== undefined) {
-          uri = uri.replace(new RegExp(match, 'g'), target)
+        if (re) {
+          re.lastIndex = 0
+          uri = uri.replace(re, target)
         }
         break
     }

@@ -31,14 +31,17 @@ function denormalizeHeaders(
 
 function parseQuerystring(qs: string): Record<string, { value: string }> {
   if (!qs) return {}
-  return Object.fromEntries(
-    qs.split('&').map(p => {
-      const parts = p.split('=')
-      const k = parts[0]
-      const v = parts[1] || ''
-      return [k, { value: v }]
-    }),
-  )
+  const result: Record<string, { value: string }> = {}
+  const pairs = qs.split('&')
+  for (let i = 0; i < pairs.length; i++) {
+    const eq = pairs[i].indexOf('=')
+    if (eq === -1) {
+      result[pairs[i]] = { value: '' }
+    } else {
+      result[pairs[i].slice(0, eq)] = { value: pairs[i].slice(eq + 1) }
+    }
+  }
+  return result
 }
 
 function serializeQuerystring(qs: Record<string, { value: string }>): string {
