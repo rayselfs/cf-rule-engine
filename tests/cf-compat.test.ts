@@ -61,6 +61,16 @@ const CHECKS: Array<{ name: string; re: RegExp; fix: string }> = [
     re: /\[\s*\.\.\.[a-zA-Z_$]/,
     fix: 'Use .concat() or push in a loop instead',
   },
+  {
+    name: 'variable destructuring (const/let/var { } or [ ])',
+    re: /\b(?:const|let|var)\s+[\[{]/,
+    fix: 'Destructure manually: const foo = obj.foo',
+  },
+  {
+    name: 'rest parameter (...args)',
+    re: /\(\s*\.\.\.[a-zA-Z_$]/,
+    fix: 'Use arguments object or explicit named params instead',
+  },
 ]
 
 const cfFiles = collectTsFiles(SRC_DIR).filter(f => !LAMBDA_ONLY.has(f))
