@@ -40,8 +40,13 @@ export default defineConfig({
     // adapters
     'src/adapters/cf-function.ts',
     'src/adapters/viewer-request.ts',
+    'src/adapters/viewer-request-async.ts',
     'src/adapters/viewer-response.ts',
     'src/adapters/lambda-edge.ts',
+    // kvs
+    'src/shared/kvs.ts',
+    'src/criteria/kvs.ts',
+    'src/behaviors/kvs.ts',
     // helpers
     'src/helpers/index.ts',
     'src/helpers/send-country-code.ts',

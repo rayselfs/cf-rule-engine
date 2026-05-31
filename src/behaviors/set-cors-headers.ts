@@ -1,4 +1,5 @@
 import type { ResponseBehaviorFn, HttpRequest, HttpResponse } from '../core/types.js'
+import { matchesOriginPattern } from '../shared/wildcard.js'
 
 export const ORIGIN_WILDCARD = '*' as const
 export type OriginWildcard = typeof ORIGIN_WILDCARD
@@ -70,40 +71,6 @@ export interface CorsOptions {
   maxAge?: number
 }
 
-function matchesOriginPattern(origin: string, pattern: string): boolean {
-  if (pattern === '*') return true
-  if (!pattern.includes('*')) return origin === pattern
-  const escaped = pattern.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*')
-  return new RegExp(`^${escaped}$`).test(origin)
-}
-
-/**
- * Sets CORS response headers with configurable origin policy.
- *
- * @param options - CORS configuration. `allowedOrigins` is required.
- * @returns A `ResponseBehaviorFn` to use directly in `defineViewerResponse` or wrapped in a `ResponseRule`.
- *
- * @example
- * ```ts
- * import { setCorsHeaders, ORIGIN_WILDCARD, ORIGIN_ECHO } from '@rayselfs/cf-rule-engine/behaviors/set-cors-headers'
- * import { defineViewerResponse } from '@rayselfs/cf-rule-engine/adapters/viewer-response'
- *
- * // Public API — static Access-Control-Allow-Origin: *
- * export default defineViewerResponse([
- *   setCorsHeaders({ allowedOrigins: ORIGIN_WILDCARD }),
- * ])
- *
- * // Restricted — echo only listed origins (supports wildcard subdomains)
- * export default defineViewerResponse([
- *   setCorsHeaders({ allowedOrigins: ['https://*.viverse.com', 'https://sdk-api.viverse.com'] }),
- * ])
- *
- * // Echo any origin (e.g. for credentialed requests)
- * export default defineViewerResponse([
- *   setCorsHeaders({ allowedOrigins: ORIGIN_ECHO, allowCredentials: true }),
- * ])
- * ```
- */
 export function setCorsHeaders(options: CorsOptions): ResponseBehaviorFn {
   const allowedOrigins = options.allowedOrigins
 

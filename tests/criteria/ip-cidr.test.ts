@@ -25,4 +25,24 @@ describe('ipCidr', () => {
     expect(ipCidr(['1.2.3.4/32'])(req('1.2.3.4'))).toBe(true)
     expect(ipCidr(['1.2.3.4/32'])(req('1.2.3.5'))).toBe(false)
   })
+
+  it('IPv6: returns true for IPv6 within /48', () => {
+    expect(ipCidr(['2001:db8:1::/48'])(req('2001:db8:1::1'))).toBe(true)
+  })
+
+  it('IPv6: returns false for IPv6 outside /48', () => {
+    expect(ipCidr(['2001:db8:1::/48'])(req('2001:db8:2::1'))).toBe(false)
+  })
+
+  it('IPv6: supports mixed IPv4 and IPv6 CIDRs', () => {
+    const fn = ipCidr(['10.0.0.0/8', '2001:db8::/32'])
+    expect(fn(req('2001:db8::1'))).toBe(true)
+    expect(fn(req('fe80::1'))).toBe(false)
+  })
+
+  it('IPv6: matches exact /128', () => {
+    expect(ipCidr(['2001:db8::1/128'])(req('2001:db8::1'))).toBe(true)
+    expect(ipCidr(['2001:db8::1/128'])(req('2001:db8::2'))).toBe(false)
+  })
 })
+
