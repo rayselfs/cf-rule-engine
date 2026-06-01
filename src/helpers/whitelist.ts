@@ -1,7 +1,9 @@
-import type { Rule } from '../core/types.js'
-import { rule, all, not } from '../core/rule.js'
+import type { Rule, CriteriaFn } from '../core/types.js'
+import { rule, all, any, not } from '../core/rule.js'
 import { ipCidr } from '../criteria/ip-cidr.js'
 import { userAgentMatches } from '../criteria/user-agent-matches.js'
+import { pathEquals } from '../criteria/path-equals.js'
+import { pathPrefix } from '../criteria/path-prefix.js'
 import { pathMatches } from '../criteria/path-matches.js'
 import { redirect } from '../behaviors/redirect.js'
 
@@ -74,6 +76,38 @@ export type WhitelistOptions = {
  * ])
  * ```
  */
+function buildBypassCriteria(paths: string[]): CriteriaFn {
+  const exactPaths: string[] = []
+  const prefixPaths: string[] = []
+  const wildcardPatterns: string[] = []
+
+  for (let i = 0; i < paths.length; i++) {
+    const p = paths[i]
+    const hasWildcard = p.indexOf('*') !== -1 || p.indexOf('?') !== -1
+    const isTrailingSlashStar =
+      p.charAt(p.length - 1) === '*' &&
+      p.charAt(p.length - 2) === '/' &&
+      p.indexOf('*') === p.length - 1 &&
+      p.indexOf('?') === -1
+
+    if (!hasWildcard) {
+      exactPaths.push(p)
+    } else if (isTrailingSlashStar) {
+      prefixPaths.push(p.slice(0, p.length - 1))
+    } else {
+      wildcardPatterns.push(p)
+    }
+  }
+
+  const criteria: CriteriaFn[] = []
+  if (exactPaths.length > 0) criteria.push(pathEquals(exactPaths))
+  if (prefixPaths.length > 0) criteria.push(pathPrefix(prefixPaths))
+  if (wildcardPatterns.length > 0) criteria.push(pathMatches(wildcardPatterns))
+
+  if (criteria.length === 1) return criteria[0]
+  return any(criteria)
+}
+
 export function whitelist(options: WhitelistOptions): Rule {
   const userAgents = options.userAgents ?? []
   const bypassPaths = options.bypassPaths ?? []
@@ -81,7 +115,7 @@ export function whitelist(options: WhitelistOptions): Rule {
   const criteria = [not(ipCidr(options.cidrs)), not(userAgentMatches(userAgents))]
 
   if (bypassPaths.length > 0) {
-    criteria.push(not(pathMatches(bypassPaths)))
+    criteria.push(not(buildBypassCriteria(bypassPaths)))
   }
 
   return rule(all(criteria), redirect(302, options.redirectUrl))

@@ -80,7 +80,7 @@ describe('whitelist', () => {
   })
 
   describe('bypassPaths', () => {
-    it('bypasses whitelist for specified exact path', () => {
+    it('bypasses whitelist for exact path (no wildcards → pathEquals)', () => {
       const r = whitelist({
         cidrs: ALLOWED_CIDRS,
         redirectUrl: '/blocked',
@@ -89,7 +89,16 @@ describe('whitelist', () => {
       expect(runRules([r], makeRequest('/health', '1.2.3.4')).action).toBe('continue')
     })
 
-    it('bypasses whitelist for wildcard path', () => {
+    it('does not bypass a path that is only a prefix of the exact bypass path', () => {
+      const r = whitelist({
+        cidrs: ALLOWED_CIDRS,
+        redirectUrl: '/blocked',
+        bypassPaths: ['/health'],
+      })
+      expect(runRules([r], makeRequest('/healthz', '1.2.3.4')).action).toBe('respond')
+    })
+
+    it('bypasses whitelist for trailing-slash-star pattern (→ pathPrefix)', () => {
       const r = whitelist({
         cidrs: ALLOWED_CIDRS,
         redirectUrl: '/blocked',
@@ -97,6 +106,46 @@ describe('whitelist', () => {
       })
       expect(runRules([r], makeRequest('/api/status', '1.2.3.4')).action).toBe('continue')
       expect(runRules([r], makeRequest('/api/v2/users', '1.2.3.4')).action).toBe('continue')
+    })
+
+    it('does not bypass path that shares prefix but is outside the /* scope', () => {
+      const r = whitelist({
+        cidrs: ALLOWED_CIDRS,
+        redirectUrl: '/blocked',
+        bypassPaths: ['/api/*'],
+      })
+      expect(runRules([r], makeRequest('/apikey', '1.2.3.4')).action).toBe('respond')
+    })
+
+    it('bypasses whitelist for mid-wildcard pattern (→ pathMatches)', () => {
+      const r = whitelist({
+        cidrs: ALLOWED_CIDRS,
+        redirectUrl: '/blocked',
+        bypassPaths: ['/static/*.js'],
+      })
+      expect(runRules([r], makeRequest('/static/app.js', '1.2.3.4')).action).toBe('continue')
+      expect(runRules([r], makeRequest('/static/vendor.js', '1.2.3.4')).action).toBe('continue')
+    })
+
+    it('does not bypass path that does not match mid-wildcard pattern', () => {
+      const r = whitelist({
+        cidrs: ALLOWED_CIDRS,
+        redirectUrl: '/blocked',
+        bypassPaths: ['/static/*.js'],
+      })
+      expect(runRules([r], makeRequest('/static/app.css', '1.2.3.4')).action).toBe('respond')
+    })
+
+    it('bypasses when mixed exact + prefix + wildcard paths are all present', () => {
+      const r = whitelist({
+        cidrs: ALLOWED_CIDRS,
+        redirectUrl: '/blocked',
+        bypassPaths: ['/robots.txt', '/public/*', '/cdn/*.woff2'],
+      })
+      expect(runRules([r], makeRequest('/robots.txt', '1.2.3.4')).action).toBe('continue')
+      expect(runRules([r], makeRequest('/public/logo.png', '1.2.3.4')).action).toBe('continue')
+      expect(runRules([r], makeRequest('/cdn/font.woff2', '1.2.3.4')).action).toBe('continue')
+      expect(runRules([r], makeRequest('/admin', '1.2.3.4')).action).toBe('respond')
     })
 
     it('does not bypass non-matching paths', () => {
