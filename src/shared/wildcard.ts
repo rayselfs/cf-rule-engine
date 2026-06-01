@@ -15,6 +15,9 @@ export function wildcardToRegex(pattern: string): RegExp {
 
 /** Returns true if `str` matches the given wildcard pattern */
 export function matchesWildcard(str: string, pattern: string): boolean {
+  if (pattern.indexOf('*') === -1 && pattern.indexOf('?') === -1) {
+    return str.toLowerCase() === pattern.toLowerCase()
+  }
   return wildcardToRegex(pattern).test(str)
 }
 
