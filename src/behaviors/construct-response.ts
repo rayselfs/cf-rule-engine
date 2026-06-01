@@ -3,7 +3,7 @@ import type { BehaviorFn } from '../core/types.js'
 /**
  * Options for constructing a synthetic HTTP response at the edge.
  */
-export interface ConstructResponseOptions {
+export type ConstructResponseOptions = {
   /**
    * The HTTP status code for the response (e.g. `200`, `403`, `404`).
    */

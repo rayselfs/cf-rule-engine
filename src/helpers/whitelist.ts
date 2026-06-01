@@ -8,7 +8,7 @@ import { redirect } from '../behaviors/redirect.js'
 /**
  * Configuration options for the IP/User-Agent access whitelist.
  */
-export interface WhitelistOptions {
+export type WhitelistOptions = {
   /**
    * CIDR ranges to allow (e.g. office IPs, VPN, stage VPCs).
    * At least one of `cidrs` or `userAgents` must be non-empty, otherwise

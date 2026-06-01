@@ -21,9 +21,6 @@ export type Origin = `https://${string}` | `http://${string}`
  */
 export type OriginPolicy = OriginWildcard | Origin[] | OriginEcho
 
-/**
- * Standard HTTP methods allowed in `Access-Control-Allow-Methods`.
- */
 export type Methods =
   | 'GET'
   | 'POST'
@@ -38,7 +35,7 @@ export type Methods =
 /**
  * CORS configuration options for `setCorsHeaders` and `preflightRequest`.
  */
-export interface CorsOptions {
+export type CorsOptions = {
   /**
    * Origin policy. See `OriginPolicy` for details.
    */
@@ -71,6 +68,19 @@ export interface CorsOptions {
   maxAge?: number
 }
 
+/**
+ * Sets CORS response headers with configurable origin policy.
+ *
+ * @param options - CORS configuration. `allowedOrigins` is required.
+ * @returns A `ResponseBehaviorFn` to use directly in `defineViewerResponse` or wrapped in a `ResponseRule`.
+ *
+ * @example
+ * ```ts
+ * setCorsHeaders({ allowedOrigins: ORIGIN_WILDCARD })
+ * setCorsHeaders({ allowedOrigins: ['https://*.viverse.com'] })
+ * setCorsHeaders({ allowedOrigins: ORIGIN_ECHO, allowCredentials: true })
+ * ```
+ */
 export function setCorsHeaders(options: CorsOptions): ResponseBehaviorFn {
   const allowedOrigins = options.allowedOrigins
 

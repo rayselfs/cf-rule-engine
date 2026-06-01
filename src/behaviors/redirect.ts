@@ -3,7 +3,7 @@ import type { BehaviorFn, HttpRequest } from '../core/types.js'
 /**
  * Options for configuring redirect behavior.
  */
-export interface RedirectOptions {
+export type RedirectOptions = {
   /**
    * When `true`, the original request's query string is appended to the redirect
    * `location` URL. Useful for preserving search params during path migrations.
