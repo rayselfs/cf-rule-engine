@@ -1,5 +1,5 @@
 /** Represents an HTTP request with URI, method, headers, and querystring. */
-export interface HttpRequest {
+export type HttpRequest = {
   uri: string
   method: string
   protocol: string
@@ -10,7 +10,7 @@ export interface HttpRequest {
 }
 
 /** Represents an HTTP response with status code and headers. */
-export interface HttpResponse {
+export type HttpResponse = {
   statusCode: number
   statusDescription?: string
   headers: Record<string, { value: string }>
@@ -32,13 +32,13 @@ export type BehaviorFn = (request: HttpRequest) => BehaviorResult
 export type ResponseBehaviorFn = (request: HttpRequest, response: HttpResponse) => HttpResponse
 
 /** A response rule: an optional criteria guard plus a ResponseBehaviorFn. */
-export interface ResponseRule {
+export type ResponseRule = {
   criteria?: CriteriaFn
   behavior: ResponseBehaviorFn
 }
 
 /** A rule combining optional criteria and a behavior function. */
-export interface Rule {
+export type Rule = {
   criteria?: CriteriaFn
   behavior: BehaviorFn
 }

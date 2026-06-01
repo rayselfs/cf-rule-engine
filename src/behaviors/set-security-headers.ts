@@ -8,7 +8,7 @@ import type { ResponseBehaviorFn, HttpRequest, HttpResponse } from '../core/type
  *
  * Pass at least one field.
  */
-export interface SecurityHeadersOptions {
+export type SecurityHeadersOptions = {
   /**
    * Value for the `Strict-Transport-Security` header.
    * Example: `'max-age=31536000; includeSubDomains'`

@@ -7,7 +7,7 @@ import type { BehaviorFn, HttpRequest } from '../core/types.js'
  * Token format: `exp=<unix>~acl=<path>~hmac=<hex>`
  * The `key` is the hex-encoded HMAC-SHA256 secret (Akamai `verifyTokenAuthorization.key`).
  */
-export interface VerifyTokenOptions {
+export type VerifyTokenOptions = {
   key: string
   param?: string
   failureStatus?: 401 | 403

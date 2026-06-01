@@ -20,11 +20,11 @@ import type { CriteriaFn } from '../core/types.js'
  *
  * // Apply long-lived cache to static assets
  * rule(fileExtension(['js', 'css', 'woff2', 'woff']),
- *   setCacheControl({ maxAge: 31536000 }))
+ *   setCacheControl('public, max-age=31536000, immutable'))
  *
  * // Apply image optimization for image requests
- * rule(fileExtension(['jpg', 'jpeg', 'png', 'gif', 'webp']),
- *   imageOptimize())
+ * rule(fileExtension(['jpg', 'jpeg', 'png', 'gif']),
+ *   imageOptimize({ breakpoints: [320, 640, 960, 1280, 1920] }))
  * ```
  */
 export function fileExtension(extensions: string[]): CriteriaFn {

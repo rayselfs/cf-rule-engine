@@ -3,7 +3,7 @@ import type { ResponseBehaviorFn, HttpRequest, HttpResponse } from '../core/type
 /**
  * Configuration for the `Content-Security-Policy` header.
  */
-export interface CspOptions {
+export type CspOptions = {
   /**
    * Map of CSP directive names to their values.
    * Each entry becomes one `<directive> <value>` segment in the header,

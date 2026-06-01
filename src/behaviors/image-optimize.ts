@@ -5,8 +5,13 @@ import type { BehaviorFn, HttpRequest } from '../core/types.js'
  *
  * Determines which request headers are injected so the proxy knows where to
  * fetch the source image:
- *   - gateway: injects X-Img-Source-Type=gateway and X-Img-Upstream-Gateway
- *   - s3:      injects X-Img-Source-Type=s3 and X-Img-Source-Bucket
+ *   - `s3`: injects `X-Img-Source-Type: s3` and `X-Img-Source-Bucket`
+ *   - `gateway`: injects `X-Img-Source-Type: gateway` and `X-Img-Upstream-Gateway`
+ *     (proxy treats any non-`s3` value as a gateway fallback)
+ *
+ * **Required for all requests** — the proxy always resolves the upstream source,
+ * even when no optimization params are present (pass-through mode). If origin
+ * headers are missing, the proxy returns an error.
  */
 export type ImageOriginConfig =
   | { type: 'gateway'; upstreamGateway: string }
@@ -32,7 +37,7 @@ export type ImageOriginResolver =
  * the normalized `imwidth`, `f`, and `q` params to drive imgproxy transformation
  * and S3 caching.
  */
-export interface ImageOptimizeOptions {
+export type ImageOptimizeOptions = {
   /** Ordered list of breakpoint widths (px). Request widths snap to the nearest ceiling breakpoint. */
   breakpoints: number[]
   /** Preferred format priority. Defaults to ['avif', 'webp', 'jpeg']. */
@@ -45,13 +50,13 @@ export interface ImageOptimizeOptions {
   imformatParam?: string
   /**
    * Origin configuration for image-optimize-proxy.
-    * When provided, injects the corresponding X-Img-* request headers so the
-    * proxy knows how to resolve the source image. This removes the need to
-    * configure CloudFront origin custom headers separately in Terraform.
-    *
-    * Accepts either a static config object or a resolver function that receives
-    * the request and returns the appropriate origin (or undefined to skip).
-    */
+   * When provided, injects the corresponding X-Img-* request headers so the
+   * proxy knows how to resolve the source image. This removes the need to
+   * configure CloudFront origin custom headers separately in Terraform.
+   *
+   * Accepts either a static config object or a resolver function that receives
+   * the request and returns the appropriate origin (or undefined to skip).
+   */
   origin?: ImageOriginResolver
   /**
    * CloudFront origin verification secret.
@@ -62,7 +67,7 @@ export interface ImageOptimizeOptions {
 }
 
 /** Resolved normalized image parameters. */
-export interface ResolvedImageParams {
+export type ResolvedImageParams = {
   /** Width snapped to nearest ceiling breakpoint. */
   breakpoint: number
   /** Resolved output format. */
@@ -175,6 +180,12 @@ export function resolveImageParams(
  *   - When `origin` is set, injects X-Img-Source-Type and X-Img-Upstream-Gateway
  *     or X-Img-Source-Bucket headers (eliminates need for Terraform origin custom headers)
  *   - When `originSecret` is set, injects X-Origin-Verify header
+ *
+ * ⚠️  **Origin headers are required even for pass-through requests.** The proxy
+ * always resolves the upstream source regardless of whether optimization params
+ * are present. If `origin` is not configured here, set `X-Img-Upstream-Gateway`
+ * or `X-Img-Source-Type` / `X-Img-Source-Bucket` as CloudFront origin custom
+ * headers in Terraform — otherwise the proxy returns an error for every request.
  *
  * Architecture:
  *   CF Function (viewer-request): imageOptimize — normalize querystring + inject origin headers
