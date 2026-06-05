@@ -23,7 +23,7 @@ export type { CorsOptions } from './set-cors-headers.js'
 export { stripQueryParams } from './strip-query-params.js'
 
 export { setCsp } from './set-csp.js'
-export type { CspOptions } from './set-csp.js'
+export type { CspOptions, CspDirectives } from './set-csp.js'
 
 export { setCacheControl } from './set-cache-control.js'
 
