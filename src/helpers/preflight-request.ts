@@ -1,7 +1,7 @@
 import type { Rule } from '../core/types.js'
 import { type CorsOptions, ORIGIN_WILDCARD, ORIGIN_ECHO } from '../behaviors/set-cors-headers.js'
 import { methodIs } from '../criteria/method-is.js'
-import { matchesOriginPattern } from '../shared/wildcard.js'
+import { matchesOriginPattern } from '../shared/origin-pattern.js'
 
 /**
  * Returns a `Rule` that responds 204 to OPTIONS preflight requests with CORS headers.

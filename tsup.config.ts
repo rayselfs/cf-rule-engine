@@ -8,6 +8,8 @@ export default defineConfig({
     // shared
     'src/shared/cidr.ts',
     'src/shared/wildcard.ts',
+    'src/shared/origin-pattern.ts',
+    'src/shared/cidr-ipv4.ts',
     // criteria
     'src/criteria/index.ts',
     'src/criteria/path-prefix.ts',
@@ -21,6 +23,9 @@ export default defineConfig({
     'src/criteria/file-extension.ts',
     'src/criteria/country-is.ts',
     'src/criteria/user-agent-matches.ts',
+    'src/criteria/ip-exact.ts',
+    'src/criteria/ip-cidr-v4.ts',
+    'src/criteria/user-agent-contains.ts',
     // behaviors
     'src/behaviors/index.ts',
     'src/behaviors/redirect.ts',

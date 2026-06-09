@@ -4,7 +4,6 @@ import { ipCidr } from '../criteria/ip-cidr.js'
 import { userAgentMatches } from '../criteria/user-agent-matches.js'
 import { pathEquals } from '../criteria/path-equals.js'
 import { pathPrefix } from '../criteria/path-prefix.js'
-import { pathMatches } from '../criteria/path-matches.js'
 import { redirect } from '../behaviors/redirect.js'
 
 /**
@@ -34,11 +33,13 @@ export type WhitelistOptions = {
   redirectUrl: string
   /**
    * URL path patterns that bypass the whitelist check entirely.
-   * Supports wildcard patterns (`*`, `?`).
+   * Supports exact paths and trailing-`/*` prefix patterns (e.g. `'/api/*'`).
+   * For arbitrary wildcard patterns, use `bypassCriteria` instead.
    *
    * @example `['/api/health', '/public/*']`
    */
   bypassPaths?: string[]
+  bypassCriteria?: CriteriaFn
 }
 
 /**
@@ -79,7 +80,6 @@ export type WhitelistOptions = {
 function buildBypassCriteria(paths: string[]): CriteriaFn {
   const exactPaths: string[] = []
   const prefixPaths: string[] = []
-  const wildcardPatterns: string[] = []
 
   for (let i = 0; i < paths.length; i++) {
     const p = paths[i]
@@ -94,15 +94,13 @@ function buildBypassCriteria(paths: string[]): CriteriaFn {
       exactPaths.push(p)
     } else if (isTrailingSlashStar) {
       prefixPaths.push(p.slice(0, p.length - 1))
-    } else {
-      wildcardPatterns.push(p)
     }
+    // arbitrary wildcard patterns are not handled here; use options.bypassCriteria instead
   }
 
   const criteria: CriteriaFn[] = []
   if (exactPaths.length > 0) criteria.push(pathEquals(exactPaths))
   if (prefixPaths.length > 0) criteria.push(pathPrefix(prefixPaths))
-  if (wildcardPatterns.length > 0) criteria.push(pathMatches(wildcardPatterns))
 
   if (criteria.length === 1) return criteria[0]
   return any(criteria)
@@ -116,6 +114,10 @@ export function whitelist(options: WhitelistOptions): Rule {
 
   if (bypassPaths.length > 0) {
     criteria.push(not(buildBypassCriteria(bypassPaths)))
+  }
+
+  if (options.bypassCriteria !== undefined) {
+    criteria.push(not(options.bypassCriteria))
   }
 
   return rule(all(criteria), redirect(302, options.redirectUrl))
