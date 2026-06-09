@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { whitelist } from '../../src/helpers/whitelist.js'
 import { runRules } from '../../src/core/rule.js'
+import { pathMatches } from '../../src/criteria/path-matches.js'
 
 const ALLOWED_CIDRS = ['203.0.113.0/24', '10.0.0.0/8']
 const ALLOWED_UAS = ['*InternalBot*', '*Prerender*']
@@ -117,34 +118,42 @@ describe('whitelist', () => {
       expect(runRules([r], makeRequest('/apikey', '1.2.3.4')).action).toBe('respond')
     })
 
-    it('bypasses whitelist for mid-wildcard pattern (→ pathMatches)', () => {
+    it('arbitrary wildcard in bypassPaths is silently skipped — path is not bypassed', () => {
       const r = whitelist({
         cidrs: ALLOWED_CIDRS,
         redirectUrl: '/blocked',
         bypassPaths: ['/static/*.js'],
+      })
+      expect(runRules([r], makeRequest('/static/app.js', '1.2.3.4')).action).toBe('respond')
+    })
+
+    it('bypassCriteria with pathMatches bypasses mid-wildcard paths', () => {
+      const r = whitelist({
+        cidrs: ALLOWED_CIDRS,
+        redirectUrl: '/blocked',
+        bypassCriteria: pathMatches(['/static/*.js']),
       })
       expect(runRules([r], makeRequest('/static/app.js', '1.2.3.4')).action).toBe('continue')
       expect(runRules([r], makeRequest('/static/vendor.js', '1.2.3.4')).action).toBe('continue')
     })
 
-    it('does not bypass path that does not match mid-wildcard pattern', () => {
+    it('bypassCriteria does not bypass non-matching paths', () => {
       const r = whitelist({
         cidrs: ALLOWED_CIDRS,
         redirectUrl: '/blocked',
-        bypassPaths: ['/static/*.js'],
+        bypassCriteria: pathMatches(['/static/*.js']),
       })
       expect(runRules([r], makeRequest('/static/app.css', '1.2.3.4')).action).toBe('respond')
     })
 
-    it('bypasses when mixed exact + prefix + wildcard paths are all present', () => {
+    it('bypasses when mixed exact + prefix paths are present', () => {
       const r = whitelist({
         cidrs: ALLOWED_CIDRS,
         redirectUrl: '/blocked',
-        bypassPaths: ['/robots.txt', '/public/*', '/cdn/*.woff2'],
+        bypassPaths: ['/robots.txt', '/public/*'],
       })
       expect(runRules([r], makeRequest('/robots.txt', '1.2.3.4')).action).toBe('continue')
       expect(runRules([r], makeRequest('/public/logo.png', '1.2.3.4')).action).toBe('continue')
-      expect(runRules([r], makeRequest('/cdn/font.woff2', '1.2.3.4')).action).toBe('continue')
       expect(runRules([r], makeRequest('/admin', '1.2.3.4')).action).toBe('respond')
     })
 

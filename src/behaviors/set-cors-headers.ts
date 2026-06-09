@@ -1,5 +1,5 @@
 import type { ResponseBehaviorFn, HttpRequest, HttpResponse } from '../core/types.js'
-import { matchesOriginPattern } from '../shared/wildcard.js'
+import { matchesOriginPattern } from '../shared/origin-pattern.js'
 
 export const ORIGIN_WILDCARD = '*' as const
 export type OriginWildcard = typeof ORIGIN_WILDCARD
