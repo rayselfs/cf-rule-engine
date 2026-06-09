@@ -1,7 +1,9 @@
 import type { Rule, CriteriaFn } from '../core/types.js'
 import { rule, all, any, not } from '../core/rule.js'
 import { ipCidr } from '../criteria/ip-cidr.js'
+import { ipExact } from '../criteria/ip-exact.js'
 import { userAgentMatches } from '../criteria/user-agent-matches.js'
+import { uaContains } from '../criteria/user-agent-contains.js'
 import { pathEquals } from '../criteria/path-equals.js'
 import { pathPrefix } from '../criteria/path-prefix.js'
 import { redirect } from '../behaviors/redirect.js'
@@ -19,12 +21,27 @@ export type WhitelistOptions = {
    */
   cidrs: string[]
   /**
+   * Exact IP addresses to allow. Lighter alternative to `cidrs` when all
+   * entries are host addresses — uses `Array.includes` with no bit arithmetic.
+   *
+   * @example `['61.218.44.76', '122.147.213.24']`
+   */
+  ips?: string[]
+  /**
    * User-Agent wildcard patterns to allow (supports `*` and `?`).
    * Requests matching any pattern are passed through regardless of IP.
    *
    * @example `['*InternalBot*', '*Prerender*']`
    */
   userAgents?: string[]
+  /**
+   * User-Agent substrings to allow. Lighter alternative to `userAgents` when
+   * patterns are of the form `*keyword*` — uses `String.includes` with no
+   * regex compilation.
+   *
+   * @example `['HTCVRSDET', 'Prerender', 'HTC3PARTY']`
+   */
+  uaKeywords?: string[]
   /**
    * URL to redirect blocked requests to. Redirects with HTTP 302.
    *
@@ -108,9 +125,24 @@ function buildBypassCriteria(paths: string[]): CriteriaFn {
 
 export function whitelist(options: WhitelistOptions): Rule {
   const userAgents = options.userAgents ?? []
+  const ips = options.ips ?? []
+  const uaKeywords = options.uaKeywords ?? []
   const bypassPaths = options.bypassPaths ?? []
 
-  const criteria = [not(ipCidr(options.cidrs)), not(userAgentMatches(userAgents))]
+  const ipAllow: CriteriaFn[] = []
+  if (options.cidrs.length > 0) ipAllow.push(ipCidr(options.cidrs))
+  if (ips.length > 0) ipAllow.push(ipExact(ips))
+
+  const uaAllow: CriteriaFn[] = []
+  if (userAgents.length > 0) uaAllow.push(userAgentMatches(userAgents))
+  if (uaKeywords.length > 0) uaAllow.push(uaContains(uaKeywords))
+
+  const blockIp: CriteriaFn = ipAllow.length === 0 ? () => true
+    : ipAllow.length === 1 ? not(ipAllow[0]) : not(any(ipAllow))
+  const blockUa: CriteriaFn = uaAllow.length === 0 ? () => true
+    : uaAllow.length === 1 ? not(uaAllow[0]) : not(any(uaAllow))
+
+  const criteria: CriteriaFn[] = [blockIp, blockUa]
 
   if (bypassPaths.length > 0) {
     criteria.push(not(buildBypassCriteria(bypassPaths)))

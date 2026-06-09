@@ -209,6 +209,75 @@ describe('whitelist', () => {
     })
   })
 
+  describe('ips (lightweight exact-match alternative to cidrs)', () => {
+    it('allows exact IP in the list', () => {
+      const r = whitelist({ cidrs: [], ips: ['1.2.3.4'], redirectUrl: '/blocked' })
+      expect(runRules([r], makeRequest('/', '1.2.3.4')).action).toBe('continue')
+    })
+
+    it('blocks IP not in the list', () => {
+      const r = whitelist({ cidrs: [], ips: ['1.2.3.4'], redirectUrl: '/blocked' })
+      expect(runRules([r], makeRequest('/', '1.2.3.5')).action).toBe('respond')
+    })
+
+    it('cidrs and ips are OR-combined', () => {
+      const r = whitelist({ cidrs: ['10.0.0.0/8'], ips: ['1.2.3.4'], redirectUrl: '/blocked' })
+      expect(runRules([r], makeRequest('/', '10.0.0.1')).action).toBe('continue')
+      expect(runRules([r], makeRequest('/', '1.2.3.4')).action).toBe('continue')
+      expect(runRules([r], makeRequest('/', '8.8.8.8')).action).toBe('respond')
+    })
+  })
+
+  describe('uaKeywords (lightweight substring alternative to userAgents)', () => {
+    it('allows UA containing the keyword', () => {
+      const r = whitelist({ cidrs: [], uaKeywords: ['Prerender'], redirectUrl: '/blocked' })
+      const result = runRules(
+        [r],
+        makeRequest('/', '1.2.3.4', { 'user-agent': { value: 'Prerender/2.0' } })
+      )
+      expect(result.action).toBe('continue')
+    })
+
+    it('blocks UA not containing any keyword', () => {
+      const r = whitelist({ cidrs: [], uaKeywords: ['Prerender'], redirectUrl: '/blocked' })
+      expect(
+        runRules([r], makeRequest('/', '1.2.3.4', { 'user-agent': { value: 'Chrome' } })).action
+      ).toBe('respond')
+    })
+
+    it('userAgents and uaKeywords are OR-combined', () => {
+      const r = whitelist({
+        cidrs: [],
+        userAgents: ['*InternalBot*'],
+        uaKeywords: ['Prerender'],
+        redirectUrl: '/blocked',
+      })
+      expect(
+        runRules([r], makeRequest('/', '1.2.3.4', { 'user-agent': { value: 'InternalBot/1.0' } })).action
+      ).toBe('continue')
+      expect(
+        runRules([r], makeRequest('/', '1.2.3.4', { 'user-agent': { value: 'Prerender/2.0' } })).action
+      ).toBe('continue')
+      expect(
+        runRules([r], makeRequest('/', '1.2.3.4', { 'user-agent': { value: 'Chrome' } })).action
+      ).toBe('respond')
+    })
+
+    it('ips + uaKeywords together replace cidrs + userAgents', () => {
+      const r = whitelist({
+        cidrs: [],
+        ips: ['61.218.44.76'],
+        uaKeywords: ['HTCVRSDET', 'Prerender'],
+        redirectUrl: '/blocked',
+      })
+      expect(runRules([r], makeRequest('/', '61.218.44.76')).action).toBe('continue')
+      expect(
+        runRules([r], makeRequest('/', '1.2.3.4', { 'user-agent': { value: 'HTCVRSDET-Crawler' } })).action
+      ).toBe('continue')
+      expect(runRules([r], makeRequest('/', '1.2.3.4')).action).toBe('respond')
+    })
+  })
+
   describe('redirect behavior', () => {
     it('redirects with 302 to the specified URL', () => {
       const r = whitelist({ cidrs: [], redirectUrl: 'https://example.com/blocked' })
