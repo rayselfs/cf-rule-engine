@@ -37,6 +37,7 @@ export default defineConfig({
     'src/behaviors/set-response-header.ts',
     'src/behaviors/remove-response-headers.ts',
     'src/behaviors/set-cors-headers.ts',
+    'src/behaviors/origin-matcher.ts',
     'src/behaviors/strip-query-params.ts',
     'src/behaviors/set-csp.ts',
     'src/behaviors/set-cache-control.ts',
