@@ -1,5 +1,4 @@
-export { redirect } from './redirect.js'
-export type { RedirectOptions } from './redirect.js'
+export { redirect, redirectWithQs } from './redirect.js'
 
 export { rewriteUri } from './rewrite-uri.js'
 export type { RewriteMode } from './rewrite-uri.js'

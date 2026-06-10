@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { redirect } from '../../src/behaviors/redirect.js'
+import { redirect, redirectWithQs } from '../../src/behaviors/redirect.js'
 
 const baseRequest = {
   uri: '/old',
@@ -45,8 +45,11 @@ describe('redirect', () => {
     }
   })
 
-  it('preserves querystring when option is set', () => {
-    const fn = redirect(302, '/new', { preserveQuerystring: true })
+})
+
+describe('redirectWithQs', () => {
+  it('preserves querystring when query params are present', () => {
+    const fn = redirectWithQs(302, '/new')
     const result = fn({ ...baseRequest, querystring: { foo: { value: 'bar' }, baz: { value: 'qux' } } })
     if (result.action === 'respond') {
       const loc = result.response.headers['location'].value
@@ -56,11 +59,22 @@ describe('redirect', () => {
     }
   })
 
-  it('does not append querystring when empty and preserveQuerystring true', () => {
-    const fn = redirect(302, '/new', { preserveQuerystring: true })
+  it('does not append querystring when query is empty', () => {
+    const fn = redirectWithQs(302, '/new')
     const result = fn(baseRequest)
     if (result.action === 'respond') {
       expect(result.response.headers['location'].value).toBe('/new')
+    }
+  })
+
+  it('returns 301 with location and no-store', () => {
+    const fn = redirectWithQs(301, '/moved')
+    const result = fn(baseRequest)
+    expect(result.action).toBe('respond')
+    if (result.action === 'respond') {
+      expect(result.response.statusCode).toBe(301)
+      expect(result.response.statusDescription).toBe('Moved Permanently')
+      expect(result.response.headers['cache-control']).toEqual({ value: 'no-store' })
     }
   })
 })

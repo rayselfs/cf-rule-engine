@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { setCorsHeaders, ORIGIN_WILDCARD, ORIGIN_ECHO } from '../../src/behaviors/set-cors-headers.js'
+import { originMatcher } from '../../src/behaviors/origin-matcher.js'
 
 const baseRequest = {
   uri: '/',
@@ -43,37 +44,36 @@ describe('setCorsHeaders', () => {
     })
   })
 
-  describe('Origin[] — compare-and-echo', () => {
+  describe('OriginMatcher — compare-and-echo', () => {
     it('echoes origin when it matches an exact domain', () => {
-      const fn = setCorsHeaders({ allowedOrigins: ['https://example.com'] })
+      const fn = setCorsHeaders({ allowedOrigins: originMatcher(['https://example.com']) })
       const req = { ...baseRequest, headers: { origin: { value: 'https://example.com' } } }
       const result = fn(req, baseResponse)
       expect(result.headers['access-control-allow-origin']).toEqual({ value: 'https://example.com' })
     })
 
     it('echoes origin when it matches a wildcard pattern', () => {
-      const fn = setCorsHeaders({ allowedOrigins: ['https://*.viverse.com'] })
+      const fn = setCorsHeaders({ allowedOrigins: originMatcher(['https://*.viverse.com']) })
       const req = { ...baseRequest, headers: { origin: { value: 'https://sdk-api.viverse.com' } } }
       const result = fn(req, baseResponse)
       expect(result.headers['access-control-allow-origin']).toEqual({ value: 'https://sdk-api.viverse.com' })
     })
 
     it('skips header when origin does not match any pattern', () => {
-      const fn = setCorsHeaders({ allowedOrigins: ['https://example.com'] })
+      const fn = setCorsHeaders({ allowedOrigins: originMatcher(['https://example.com']) })
       const req = { ...baseRequest, headers: { origin: { value: 'https://evil.com' } } }
       const result = fn(req, baseResponse)
       expect(result.headers['access-control-allow-origin']).toBeUndefined()
     })
 
     it('skips header when no Origin header is present', () => {
-      const fn = setCorsHeaders({ allowedOrigins: ['https://example.com'] })
+      const fn = setCorsHeaders({ allowedOrigins: originMatcher(['https://example.com']) })
       const result = fn(baseRequest, baseResponse)
       expect(result.headers['access-control-allow-origin']).toBeUndefined()
     })
 
-    it('throws when allowedOrigins is empty', () => {
-      // @ts-expect-error testing runtime guard
-      expect(() => setCorsHeaders({ allowedOrigins: [] })).not.toThrow()
+    it('does not throw when originMatcher receives empty list', () => {
+      expect(() => setCorsHeaders({ allowedOrigins: originMatcher([]) })).not.toThrow()
     })
   })
 

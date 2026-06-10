@@ -1,5 +1,4 @@
 import type { ResponseBehaviorFn, HttpRequest, HttpResponse } from '../core/types.js'
-import { matchesOriginPattern } from '../shared/origin-pattern.js'
 
 export const ORIGIN_WILDCARD = '*' as const
 export type OriginWildcard = typeof ORIGIN_WILDCARD
@@ -14,12 +13,19 @@ export type OriginEcho = typeof ORIGIN_ECHO
 export type Origin = `https://${string}` | `http://${string}`
 
 /**
+ * A function that returns `true` when the given request origin should be allowed.
+ * Build one with `originMatcher(origins)` from `@rayselfs/cf-rule-engine/behaviors/origin-matcher`.
+ */
+export type OriginMatcher = (origin: string) => boolean
+
+/**
  * Controls how `Access-Control-Allow-Origin` is set:
  * - `ORIGIN_WILDCARD` (`'*'`) — static `*`, allows all origins without inspection
- * - `Origin[]` — compare request `Origin` header against the list; echo if matched, skip if not
  * - `ORIGIN_ECHO` (`'echo'`) — echo any request `Origin` if present, skip if none
+ * - `OriginMatcher` — call the function with the request `Origin`; echo if truthy, skip if falsy.
+ *   Build one with `originMatcher(origins)` from `@rayselfs/cf-rule-engine/behaviors/origin-matcher`.
  */
-export type OriginPolicy = OriginWildcard | Origin[] | OriginEcho
+export type OriginPolicy = OriginWildcard | OriginEcho | OriginMatcher
 
 export type Methods =
   | 'GET'
@@ -58,7 +64,7 @@ export type CorsOptions = {
   allowedHeaders?: string[]
   /**
    * When `true`, sets `Access-Control-Allow-Credentials: true`.
-   * Use with `ORIGIN_ECHO` or `Origin[]` — browsers reject `*` with credentials.
+   * Use with `ORIGIN_ECHO` or `OriginMatcher` — browsers reject `*` with credentials.
    */
   allowCredentials?: boolean
   /**
@@ -76,8 +82,10 @@ export type CorsOptions = {
  *
  * @example
  * ```ts
+ * import { originMatcher } from '@rayselfs/cf-rule-engine/behaviors/origin-matcher'
+ *
  * setCorsHeaders({ allowedOrigins: ORIGIN_WILDCARD })
- * setCorsHeaders({ allowedOrigins: ['https://*.viverse.com'] })
+ * setCorsHeaders({ allowedOrigins: originMatcher(['https://*.viverse.com']) })
  * setCorsHeaders({ allowedOrigins: ORIGIN_ECHO, allowCredentials: true })
  * ```
  */
@@ -93,7 +101,7 @@ export function setCorsHeaders(options: CorsOptions): ResponseBehaviorFn {
       allowOrigin = request.headers['origin']?.value
     } else {
       const originHeader = request.headers['origin']?.value
-      if (originHeader && allowedOrigins.some((p) => matchesOriginPattern(originHeader, p))) {
+      if (originHeader && allowedOrigins(originHeader)) {
         allowOrigin = originHeader
       }
     }

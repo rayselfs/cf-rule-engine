@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { preflightRequest } from '../../src/helpers/preflight-request.js'
 import { ORIGIN_WILDCARD, ORIGIN_ECHO } from '../../src/behaviors/set-cors-headers.js'
+import { originMatcher } from '../../src/behaviors/origin-matcher.js'
 
 const makeRequest = (method: string, headers: Record<string, { value: string }> = {}) => ({
   uri: '/',
@@ -97,9 +98,9 @@ describe('preflightRequest', () => {
     })
   })
 
-  describe('Origin[] — compare-and-echo', () => {
+  describe('OriginMatcher — compare-and-echo', () => {
     it('echoes matching origin', () => {
-      const rule = preflightRequest({ allowedOrigins: ['https://www.example.com'] })
+      const rule = preflightRequest({ allowedOrigins: originMatcher(['https://www.example.com']) })
       const result = rule.behavior(
         makeRequest('OPTIONS', { origin: { value: 'https://www.example.com' } })
       )
@@ -111,7 +112,7 @@ describe('preflightRequest', () => {
     })
 
     it('echoes matching wildcard origin', () => {
-      const rule = preflightRequest({ allowedOrigins: ['https://*.example.com'] })
+      const rule = preflightRequest({ allowedOrigins: originMatcher(['https://*.example.com']) })
       const result = rule.behavior(
         makeRequest('OPTIONS', { origin: { value: 'https://stream.example.com' } })
       )
@@ -123,7 +124,7 @@ describe('preflightRequest', () => {
     })
 
     it('omits header when request origin does not match', () => {
-      const rule = preflightRequest({ allowedOrigins: ['https://www.example.com'] })
+      const rule = preflightRequest({ allowedOrigins: originMatcher(['https://www.example.com']) })
       const result = rule.behavior(
         makeRequest('OPTIONS', { origin: { value: 'https://evil.com' } })
       )
@@ -133,7 +134,7 @@ describe('preflightRequest', () => {
     })
 
     it('omits header when no origin header is present', () => {
-      const rule = preflightRequest({ allowedOrigins: ['https://www.example.com'] })
+      const rule = preflightRequest({ allowedOrigins: originMatcher(['https://www.example.com']) })
       const result = rule.behavior(makeRequest('OPTIONS'))
       if (result.action === 'respond') {
         expect(result.response.headers['access-control-allow-origin']).toBeUndefined()
