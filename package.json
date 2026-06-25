@@ -1,6 +1,6 @@
 {
   "name": "@rayselfs/cf-rule-engine",
-  "version": "1.13.2",
+  "version": "1.13.3",
   "description": "Composable, tree-shakeable CloudFront Function rules",
   "license": "MIT",
   "sideEffects": false,
@@ -23,6 +23,11 @@
       "types": "./dist/criteria/*.d.ts",
       "import": "./dist/criteria/*.js",
       "require": "./dist/criteria/*.cjs"
+    },
+    "./behaviors": {
+      "types": "./dist/behaviors/index.d.ts",
+      "import": "./dist/behaviors/index.js",
+      "require": "./dist/behaviors/index.cjs"
     },
     "./behaviors/*": {
       "types": "./dist/behaviors/*.d.ts",

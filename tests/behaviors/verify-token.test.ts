@@ -13,12 +13,12 @@ function token(message: string): string {
   return message + '~hmac=' + sign(message)
 }
 
-function request(uri: string, hdnts: string): HttpRequest {
+function request(uri: string, hdnts?: string): HttpRequest {
   return {
     uri,
     method: 'GET',
     protocol: 'https',
-    querystring: { hdnts: { value: hdnts }, ignored: { value: '1' } },
+    querystring: hdnts === undefined ? {} : { hdnts: { value: hdnts }, ignored: { value: '1' } },
     headers: {},
     clientIp: '1.2.3.4',
   }
@@ -44,5 +44,33 @@ describe('verifyToken', () => {
     const result = fn(request('/avatars/me 1.png', 'exp=4102444800~hmac=' + sign('exp=4102444800~url=%2favatars%2fme+1.png')))
 
     expect(result.action).toBe('continue')
+  })
+
+  it('denies requests without a token', () => {
+    const fn = verifyToken({ key })
+    const result = fn(request('/avatars/me.png'))
+
+    expect(result.action).toBe('respond')
+  })
+
+  it('denies tokens with an invalid hmac', () => {
+    const fn = verifyToken({ key })
+    const result = fn(request('/avatars/me.png', 'exp=4102444800~acl=/avatars/*~hmac=deadbeef'))
+
+    expect(result.action).toBe('respond')
+  })
+
+  it('denies expired tokens', () => {
+    const fn = verifyToken({ key })
+    const result = fn(request('/avatars/me.png', token('exp=1~acl=/avatars/*')))
+
+    expect(result.action).toBe('respond')
+  })
+
+  it('denies tokens before their start time', () => {
+    const fn = verifyToken({ key })
+    const result = fn(request('/avatars/me.png', token('st=4102444800~acl=/avatars/*')))
+
+    expect(result.action).toBe('respond')
   })
 })
