@@ -1,5 +1,6 @@
 import { createHmac, timingSafeEqual } from 'crypto'
 import type { BehaviorFn, HttpRequest } from '../core/types.js'
+import { matchesWildcard } from '../shared/wildcard.js'
 
 /**
  * ⚠️  Lambda@Edge only — CF Functions do not have the Node.js `crypto` module.
@@ -10,11 +11,19 @@ import type { BehaviorFn, HttpRequest } from '../core/types.js'
 export type VerifyTokenOptions = {
   key: string
   param?: string
+  escapeEarly?: boolean
+  ignoreQueryString?: boolean
   failureStatus?: 401 | 403
 }
 
-function parseToken(raw: string): Record<string, string> | null {
+type ParsedToken = {
+  fields: Record<string, string>
+  signedParts: string[]
+}
+
+function parseToken(raw: string): ParsedToken | null {
   const fields: Record<string, string> = {}
+  const signedParts: string[] = []
   const parts = raw.split('~')
   for (let i = 0; i < parts.length; i++) {
     const eq = parts[i].indexOf('=')
@@ -22,15 +31,34 @@ function parseToken(raw: string): Record<string, string> | null {
     const k = parts[i].slice(0, eq)
     if (!k) return null
     fields[k] = parts[i].slice(eq + 1)
+    if (k !== 'hmac') signedParts.push(parts[i])
   }
-  return fields
+  return { fields, signedParts }
 }
 
-function verifyHmac(fields: Record<string, string>, keyHex: string): boolean {
-  var hmacVal = fields['hmac']
+function escapeEarly(text: string): string {
+  return encodeURIComponent(text)
+    .replace(/%20/g, '+')
+    .replace(/[!'()*]/g, function(c) { return '%' + c.charCodeAt(0).toString(16) })
+    .replace(/%[0-9A-F]{2}/g, function(c) { return c.toLowerCase() })
+}
+
+function requestPath(request: HttpRequest, ignoreQueryString: boolean, tokenParam: string): string {
+  if (ignoreQueryString) return request.uri
+  const entries = Object.entries(request.querystring)
+  const query: string[] = []
+  for (let i = 0; i < entries.length; i++) {
+    if (entries[i][0] !== tokenParam) query.push(entries[i][0] + '=' + entries[i][1].value)
+  }
+  return query.length ? request.uri + '?' + query.join('&') : request.uri
+}
+
+function verifyHmac(parsed: ParsedToken, keyHex: string, signedPath: string): boolean {
+  var hmacVal = parsed.fields['hmac']
   if (!hmacVal) return false
-  var restKeys = Object.keys(fields).filter(function(k) { return k !== 'hmac' })
-  var message = restKeys.map(function(k) { return k + '=' + fields[k] }).join('~')
+  const signedParts = parsed.signedParts.slice()
+  if (!parsed.fields['acl'] && !parsed.fields['url']) signedParts.push('url=' + signedPath)
+  var message = signedParts.join('~')
   let keyBytes: Buffer
   try { keyBytes = Buffer.from(keyHex, 'hex') } catch { return false }
   const expected = createHmac('sha256', keyBytes).update(message).digest()
@@ -38,6 +66,14 @@ function verifyHmac(fields: Record<string, string>, keyHex: string): boolean {
   try { actual = Buffer.from(hmacVal, 'hex') } catch { return false }
   if (expected.length !== actual.length) return false
   return timingSafeEqual(expected, actual) // timing-safe: prevents HMAC oracle attacks
+}
+
+function matchesAcl(uri: string, acl: string): boolean {
+  const patterns = acl.split('!')
+  for (let i = 0; i < patterns.length; i++) {
+    if (matchesWildcard(uri, patterns[i])) return true
+  }
+  return false
 }
 
 /**
@@ -57,6 +93,7 @@ function verifyHmac(fields: Record<string, string>, keyHex: string): boolean {
  */
 export function verifyToken(options: VerifyTokenOptions): BehaviorFn {
   const param = options.param ?? 'hdnts'
+  const ignoreQueryString = options.ignoreQueryString ?? true
   const failureStatus = options.failureStatus ?? 403
   const statusDescription = failureStatus === 401 ? 'Unauthorized' : 'Forbidden'
 
@@ -73,8 +110,9 @@ export function verifyToken(options: VerifyTokenOptions): BehaviorFn {
     const tokenEntry = request.querystring[param]
     if (!tokenEntry?.value) return deny()
 
-    const fields = parseToken(tokenEntry.value)
-    if (!fields) return deny()
+    const parsed = parseToken(tokenEntry.value)
+    if (!parsed) return deny()
+    const fields = parsed.fields
 
     const expStr = fields['exp']
     if (expStr) {
@@ -82,7 +120,18 @@ export function verifyToken(options: VerifyTokenOptions): BehaviorFn {
       if (isNaN(exp) || Math.floor(Date.now() / 1000) > exp) return deny()
     }
 
-    if (!verifyHmac(fields, options.key)) return deny()
+    const stStr = fields['st']
+    if (stStr) {
+      const st = parseInt(stStr, 10)
+      if (isNaN(st) || Math.floor(Date.now() / 1000) < st) return deny()
+    }
+
+    if (fields['acl'] && !matchesAcl(request.uri, fields['acl'])) return deny()
+
+    const path = requestPath(request, ignoreQueryString, param)
+    const signedPath = options.escapeEarly ? escapeEarly(path) : path
+    if (fields['url'] && fields['url'] !== signedPath) return deny()
+    if (!verifyHmac(parsed, options.key, signedPath)) return deny()
 
     return { action: 'continue', request }
   }
